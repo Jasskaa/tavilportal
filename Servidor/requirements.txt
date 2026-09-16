@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+playwright
+openpyxl
+pydantic
+requests
+pymupdf
+Pillow
+python-multipart
+python-dotenv

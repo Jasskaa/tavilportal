@@ -1,0 +1,21 @@
+# Credencials i configuracio sensible
+.env
+config.json
+*.credentials.json
+*.secret.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node / Web
+node_modules/
+.output/
+
+# Logs
+*.log
+
+# Temporals
+temp_pdf/
