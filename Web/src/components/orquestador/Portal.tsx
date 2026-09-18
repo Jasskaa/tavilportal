@@ -1,16 +1,19 @@
 import { useState } from "react";
-import { Search, Download, Trash2 } from "lucide-react";
+import { Search, Download, Trash2, History } from "lucide-react";
 import { PaginaBuscador } from "./PaginaBuscador";
 import { PaginaDescarga } from "./PaginaDescarga";
 import { PaginaAnulador } from "./PaginaAnulador";
+import { PaginaHistorial } from "./PaginaHistorial";
 import { BotonAjustos } from "./ModalAjustos";
+import { ColaBadge } from "./ColaBadge";
 
-export type Seccion = "buscador" | "descarga" | "anulador";
+export type Seccion = "buscador" | "descarga" | "anulador" | "historial";
 
 export const SECCIONES: { id: Seccion; label: string; icon: React.ReactNode }[] = [
-  { id: "buscador", label: "Buscador de piezas", icon: <Search className="h-4.5 w-4.5" /> },
-  { id: "descarga", label: "Descarga de comandas", icon: <Download className="h-4.5 w-4.5" /> },
-  { id: "anulador", label: "Anulador", icon: <Trash2 className="h-4.5 w-4.5" /> },
+  { id: "buscador", label: "Cercar peces", icon: <Search className="h-4 w-4" /> },
+  { id: "descarga", label: "Descàrrega", icon: <Download className="h-4 w-4" /> },
+  { id: "anulador", label: "Anul·lador", icon: <Trash2 className="h-4 w-4" /> },
+  { id: "historial", label: "Historial", icon: <History className="h-4 w-4" /> },
 ];
 
 interface Props {
@@ -27,49 +30,59 @@ export function Portal({ seccionInicial, onSeccionChange }: Props) {
   };
 
   return (
-    // h-screen + overflow-hidden en el contenedor exterior: el sidebar y
-    // la cabecera quedan siempre fijos y nunca se desplazan al hacer
-    // scroll en el contenido, sea cual sea la sección activa.
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar — siempre visible, en las tres secciones */}
-      <nav className="flex w-[60px] shrink-0 flex-col items-center gap-1 border-r border-border py-4">
-        {SECCIONES.map((s) => (
-          <button
-            key={s.id}
-            title={s.label}
-            aria-label={s.label}
-            onClick={() => setSeccion(s.id)}
-            className={`flex h-11 w-11 items-center justify-center rounded-md transition-colors ${
-              seccion === s.id
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-            }`}
-          >
-            {s.icon}
-          </button>
-        ))}
-      </nav>
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
+      {/* Barra superior — sempre visible, en les quatre seccions */}
+      <header className="z-30 flex h-16 shrink-0 items-center border-b border-border bg-card">
+        <div className="mx-auto flex h-full w-full max-w-[1400px] items-center justify-between gap-4 px-8">
+          {/* Esquerra — logo */}
+          <div className="flex shrink-0 items-center gap-2.5">
+            <span className="text-sm font-medium text-foreground">Tavil · Domoli</span>
+          </div>
+
+          {/* Centre — navegació per tabs */}
+          <nav className="flex h-full items-center gap-1">
+            {SECCIONES.map((s) => {
+              const actiu = seccion === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSeccion(s.id)}
+                  className={`relative flex h-full items-center gap-2 px-3 text-sm font-medium transition-colors ${
+                    actiu ? "text-primary" : "text-muted-foreground hover:text-secondary-foreground"
+                  }`}
+                >
+                  {s.icon}
+                  {s.label}
+                  {actiu && (
+                    <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-primary" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Dreta — cua, ajustos */}
+          <div className="flex shrink-0 items-center gap-1">
+            <ColaBadge onVerPeces={() => setSeccion("descarga")} />
+            <BotonAjustos />
+          </div>
+        </div>
+      </header>
 
       {seccion === "buscador" ? (
-        // El buscador gestiona su propio título/buscador estilo Gemini como
-        // cabecera — por eso no lleva el header estándar del portal — pero
-        // vive dentro del área de contenido junto al sidebar, no a pantalla
-        // completa.
-        <div className="relative min-w-0 flex-1">
+        // El buscador gestiona el seu propi scroll intern (absolute inset-0)
+        // per poder fer el morph entre l'estat centrat inicial i la barra
+        // superior amb resultats — per això no porta overflow-y-auto aquí.
+        <div className="relative min-h-0 flex-1">
           <PaginaBuscador />
         </div>
       ) : (
-        <div className="flex min-w-0 flex-1 flex-col">
-          {/* Barra superior — logo + ajustes */}
-          <header className="flex shrink-0 items-center justify-between border-b border-border px-6 py-3">
-            <span className="text-sm text-foreground">1076 · Tavil</span>
-            <BotonAjustos />
-          </header>
-
-          <main className="flex-1 overflow-y-auto">
-            {seccion === "descarga" ? <PaginaDescarga /> : <PaginaAnulador />}
-          </main>
-        </div>
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          {seccion === "descarga" && <PaginaDescarga />}
+          {seccion === "anulador" && <PaginaAnulador />}
+          {seccion === "historial" && <PaginaHistorial />}
+        </main>
       )}
     </div>
   );

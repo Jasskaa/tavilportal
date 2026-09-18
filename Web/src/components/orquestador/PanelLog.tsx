@@ -76,8 +76,8 @@ export function PanelLog({ onEntry }: Props) {
   };
 
   return (
-    <div className="overflow-hidden rounded-md border border-border">
-      <div className="flex items-center justify-between border-b border-border bg-surface px-3 py-2">
+    <div className="overflow-hidden rounded-2xl border border-border">
+      <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2">
         <span className="text-xs font-medium text-muted-foreground">Log en temps real</span>
         <div className="flex items-center gap-3">
           <button
@@ -85,7 +85,11 @@ export function PanelLog({ onEntry }: Props) {
             onClick={copiar}
             className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            {copiat ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+            {copiat ? (
+              <Check className="h-3 w-3 text-[var(--badge-success-text)]" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
             Copiar log
           </button>
           <button
@@ -100,7 +104,13 @@ export function PanelLog({ onEntry }: Props) {
       </div>
       <div
         ref={contenedorRef}
-        style={{ background: "#020305", height: 400, fontFamily: "ui-monospace, monospace", fontSize: 12, color: "#e2e4e8" }}
+        style={{
+          background: "#0f1117",
+          height: 350,
+          fontFamily: "ui-monospace, monospace",
+          fontSize: 12,
+          color: "#e2e4e8",
+        }}
         className="overflow-y-auto px-3 py-2"
       >
         {lineas.length === 0 ? (

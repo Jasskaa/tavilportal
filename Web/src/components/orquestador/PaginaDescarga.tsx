@@ -13,8 +13,11 @@ import {
 } from "@/lib/api";
 import { GrupoComanda } from "./GrupoComanda";
 import { EntornProves } from "./EntornProves";
+import { useUserConfig } from "@/hooks/use-user-config";
 
 export function PaginaDescarga() {
+  const { config } = useUserConfig();
+
   // --- Parte A: descarga manual ---
   const [comandas, setComandas] = useState<string[]>([]);
   const [draft, setDraft] = useState("");
@@ -78,7 +81,10 @@ export function PaginaDescarga() {
           : { text: "Sin comandas nuevas en las últimas 24h", ok: false },
       );
     } catch (e) {
-      setEmailMsg({ text: e instanceof Error ? e.message : "Error al consultar el correo", ok: false });
+      setEmailMsg({
+        text: e instanceof Error ? e.message : "Error al consultar el correo",
+        ok: false,
+      });
     } finally {
       setCheckingEmail(false);
     }
@@ -151,7 +157,9 @@ export function PaginaDescarga() {
     setPiezasDescargadas(estadoCola.piezas_listas);
     setErroresDescarga([]);
     await limpiarPiezasListas();
-    setEstadoCola((prev) => (prev ? { ...prev, piezas_listas: [], hay_nuevas: false, comandas_listas: [] } : prev));
+    setEstadoCola((prev) =>
+      prev ? { ...prev, piezas_listas: [], hay_nuevas: false, comandas_listas: [] } : prev,
+    );
   };
 
   const descartarErroresCola = async () => {
@@ -176,12 +184,19 @@ export function PaginaDescarga() {
   const erroresRecientes = estadoCola?.errores_recientes ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-8 py-8">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div className="mx-auto w-full max-w-6xl px-8 py-8">
+      <h1 className="text-2xl font-semibold text-foreground">Descàrrega de comandes</h1>
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
         {/* Parte A — descarga manual */}
-        <section className="rounded-lg border border-border bg-surface p-5">
-          <h2 className="text-sm font-medium text-foreground">Descarga manual</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Introdueix el número de comanda i prem Enter</p>
+        <section className="card-elevated border border-border p-5">
+          <div className="flex items-center gap-2">
+            <Download className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Descàrrega manual</h2>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Introdueix el número de comanda i prem Enter
+          </p>
 
           {serverDown && (
             <div role="alert" className="mt-3 flex items-center gap-2 text-xs text-destructive">
@@ -202,7 +217,7 @@ export function PaginaDescarga() {
             }}
             placeholder="Número de comanda"
             aria-label="Número de comanda"
-            className="mt-3 w-full border-0 border-b border-border bg-transparent py-2 font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary disabled:opacity-40"
+            className="mt-4 w-full rounded-lg border border-border bg-background px-3 py-2.5 font-mono text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
           />
 
           {comandas.length > 0 && (
@@ -210,7 +225,7 @@ export function PaginaDescarga() {
               {comandas.map((c) => (
                 <li
                   key={c}
-                  className="flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 font-mono text-xs text-foreground"
+                  className="flex items-center gap-1.5 rounded-full border border-[#bfdbfe] bg-[var(--badge-info-bg)] px-3 py-1 font-mono text-xs text-primary"
                 >
                   {c}
                   <button
@@ -218,7 +233,7 @@ export function PaginaDescarga() {
                     aria-label={`Eliminar comanda ${c}`}
                     disabled={downloading}
                     onClick={() => setComandas((list) => list.filter((x) => x !== c))}
-                    className="text-muted-foreground transition-colors hover:text-destructive"
+                    className="text-primary/60 transition-colors hover:text-destructive"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -242,7 +257,7 @@ export function PaginaDescarga() {
               type="button"
               onClick={start}
               disabled={!comandas.length && !draft.trim()}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-[#2952cc] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Download className="h-4 w-4" />
               Descarregar del portal
@@ -258,11 +273,18 @@ export function PaginaDescarga() {
               disabled={checkingEmail || downloading}
               className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
             >
-              {checkingEmail ? <Loader2 className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+              {checkingEmail ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Mail className="h-3 w-3" />
+              )}
               Detectar del correu
             </button>
             {emailMsg && (
-              <span className="text-xs" style={{ color: emailMsg.ok ? "var(--success)" : undefined }}>
+              <span
+                className="text-xs"
+                style={{ color: emailMsg.ok ? "var(--success)" : undefined }}
+              >
                 {emailMsg.text}
               </span>
             )}
@@ -270,17 +292,17 @@ export function PaginaDescarga() {
         </section>
 
         {/* Parte B — segundo plano automático (correo) */}
-        <section className="rounded-lg border border-border bg-surface p-5">
+        <section className="card-elevated border border-border p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-foreground">Segon pla — correu automàtic</h2>
-            <div className="flex items-center gap-1.5 text-xs">
+            <h2 className="text-sm font-semibold text-foreground">Monitorització automàtica</h2>
+            <span
+              className={`flex items-center gap-1.5 text-xs ${sistemaActivo ? "text-[var(--badge-success-text)]" : "text-muted-foreground"}`}
+            >
               <span
-                className={`h-1.5 w-1.5 rounded-full ${sistemaActivo ? "animate-pulse bg-success" : "bg-muted-foreground"}`}
+                className={`h-1.5 w-1.5 rounded-full ${sistemaActivo ? "animate-pulse bg-[var(--badge-success-text)]" : "bg-muted-foreground"}`}
               />
-              <span style={{ color: sistemaActivo ? "var(--success)" : undefined }} className={!sistemaActivo ? "text-muted-foreground" : ""}>
-                {sistemaActivo ? "Sistema actiu" : "Sense connexió"}
-              </span>
-            </div>
+              {sistemaActivo ? "Sistema actiu" : "Sense connexió"}
+            </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">Monitoritzant correu de Tavil</p>
 
@@ -323,7 +345,7 @@ export function PaginaDescarga() {
             <button
               type="button"
               onClick={verPiezasAutomaticas}
-              className="group mt-3 flex items-center gap-1.5 text-sm text-foreground transition-colors hover:text-primary"
+              className="group mt-3 flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-[#2952cc]"
             >
               Veure {piezasListas.length} peça(es) descarregada(es)
               <span className="transition-transform group-hover:translate-x-1">→</span>
@@ -336,14 +358,15 @@ export function PaginaDescarga() {
         </section>
       </div>
 
-      <EntornProves />
+      {config.mostrarEntornProves && <EntornProves />}
 
       {/* Resultado de la última descarga (manual o automática) */}
       {piezasDescargadas.length > 0 && (
         <div className="mt-8">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">
-              {piezasDescargadas.length} peça{piezasDescargadas.length === 1 ? "" : "s"} descarregada
+              {piezasDescargadas.length} peça{piezasDescargadas.length === 1 ? "" : "s"}{" "}
+              descarregada
               {piezasDescargadas.length === 1 ? "" : "s"}
             </p>
             <button
@@ -372,7 +395,7 @@ export function PaginaDescarga() {
       {toast && (
         <div
           role="status"
-          className="fixed bottom-6 right-6 rounded-md border border-primary/40 bg-surface px-4 py-3 text-sm text-foreground"
+          className="fixed bottom-6 right-6 z-50 rounded-xl border-l-4 border-primary bg-card px-4 py-3 text-sm text-foreground shadow-[var(--shadow-card-hover)]"
         >
           {toast}
         </div>

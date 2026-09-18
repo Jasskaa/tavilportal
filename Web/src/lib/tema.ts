@@ -1,8 +1,9 @@
 /**
  * Tema clar/fosc de toda la app — una sola clase "dark" en <html>
  * (ver styles.css: :root = clar, .dark = fosc) más localStorage para
- * recordarlo entre sesiones. El fosc es el aspecto histórico de la app,
- * así que es el valor por defecto si el usuario nunca ha elegido nada.
+ * recordarlo entre sesiones. El clar (dashboard estil Dribbble) es
+ * l'aspecte per defecte; el fosc queda disponible des d'Ajustos per a qui
+ * el prefereixi.
  */
 
 export type Tema = "fosc" | "clar";
@@ -11,9 +12,9 @@ const CLAU_TEMA = "orquestador:tema";
 
 export function obtenirTemaGuardat(): Tema {
   try {
-    return localStorage.getItem(CLAU_TEMA) === "clar" ? "clar" : "fosc";
+    return localStorage.getItem(CLAU_TEMA) === "fosc" ? "fosc" : "clar";
   } catch {
-    return "fosc";
+    return "clar";
   }
 }
 

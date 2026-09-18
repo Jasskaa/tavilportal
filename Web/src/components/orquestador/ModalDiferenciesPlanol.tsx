@@ -31,7 +31,14 @@ function lineaDiferencia(d: DiferenciaPlanol): string {
 /** Modal de diferencias de un plànol (ver comparar_planols en el servidor):
  * el PDF marcado a la izquierda (embebido con iframe) y la lista de
  * diferencias detectadas a la derecha, con botón de descarga. */
-export function ModalDiferenciesPlanol({ open, onOpenChange, comanda, nombreArchivo, codigo, diferencias }: Props) {
+export function ModalDiferenciesPlanol({
+  open,
+  onOpenChange,
+  comanda,
+  nombreArchivo,
+  codigo,
+  diferencias,
+}: Props) {
   const { config } = useUserConfig();
   const [descargando, setDescargando] = useState(false);
 
@@ -48,23 +55,26 @@ export function ModalDiferenciesPlanol({ open, onOpenChange, comanda, nombreArch
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[85vh] max-w-4xl flex-col sm:max-w-4xl">
+      <DialogContent className="flex h-[85vh] max-w-4xl flex-col rounded-2xl sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="font-mono">{codigo} · Diferències</DialogTitle>
         </DialogHeader>
 
         <div className="flex min-h-0 flex-1 gap-4">
-          <div className="min-w-0 flex-1 overflow-hidden rounded-md border border-border">
+          <div className="min-w-0 flex-1 overflow-hidden rounded-xl border border-border">
             <iframe src={url} title={`Diferències ${codigo}`} className="h-full w-full" />
           </div>
 
           <div className="flex w-64 shrink-0 flex-col">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">
+            <p className="text-[11px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
               {diferencias.length} diferència{diferencias.length === 1 ? "" : "s"}
             </p>
             <ul className="mt-2 flex-1 space-y-1.5 overflow-y-auto pr-1 text-sm">
               {diferencias.map((d, i) => (
-                <li key={i} className="rounded border border-border bg-surface px-2 py-1.5 text-xs text-foreground">
+                <li
+                  key={i}
+                  className="rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-foreground"
+                >
                   {lineaDiferencia(d)}
                 </li>
               ))}
@@ -73,9 +83,13 @@ export function ModalDiferenciesPlanol({ open, onOpenChange, comanda, nombreArch
               type="button"
               onClick={descargar}
               disabled={descargando}
-              className="mt-3 flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
+              className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-[#2952cc] disabled:cursor-wait disabled:opacity-60"
             >
-              {descargando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {descargando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
               Descarregar PDF diferències
             </button>
           </div>

@@ -64,7 +64,7 @@ RUTA_INDICE_PIEZAS  = r"C:\DXF TEMPORAL\MACROS\indice_piezas.json"
 SERVIDOR_UNC_PERMITIDO = "SRVDADES"
 
 # Credencials del portal SharePoint de Tavil -- carregades des de .env (mai
-# es pugen a GitHub; veure .env.example per a la plantilla de variables).
+# es pugen a GitHub; veure .env.example al repositori per a la plantilla).
 PORTAL_USUARIO      = os.getenv("PORTAL_USUARIO")
 PORTAL_CONTRASENYA  = os.getenv("PORTAL_CONTRASENYA")
 

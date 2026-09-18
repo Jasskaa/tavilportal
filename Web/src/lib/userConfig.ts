@@ -22,6 +22,10 @@ export interface UserConfig {
    * el navegador els descarregui. No afecta la descàrrega manual, que ja
    * té els seus propis botons "Imprimir tot"/"Descarregar tot" per targeta. */
   accioDocuments: "imprimir" | "descarregar";
+  /** "Entorn de proves" (simular correu sense esperar-ne un de real) és una
+   * eina de suport/depuració — amagada per defecte perquè no molesti al dia
+   * a dia; s'activa des d'Ajustos > Avançat quan cal fer una prova. */
+  mostrarEntornProves: boolean;
 }
 
 /** Config buida — cap override, el servidor fa servir sempre les seves
@@ -33,6 +37,7 @@ export const USER_CONFIG_BUIDA: UserConfig = {
   rutaExcels: "",
   rutaComercial: "",
   accioDocuments: "imprimir",
+  mostrarEntornProves: false,
 };
 
 /** Rutes reals per defecte del servidor — NOMÉS per mostrar-les com a
@@ -40,7 +45,7 @@ export const USER_CONFIG_BUIDA: UserConfig = {
  * no escriu res, no s'envia cap paràmetre i el servidor ja fa servir
  * aquests mateixos valors. Han d'estar sincronitzades amb main.py:
  * CARPETA_RAIZ_1076 / CARPETA_TALLER / CARPETA_EXCELS / CARPETA_COMERCIAL. */
-export const RUTES_PER_DEFECTE: Omit<UserConfig, "accioDocuments"> = {
+export const RUTES_PER_DEFECTE: Omit<UserConfig, "accioDocuments" | "mostrarEntornProves"> = {
   rutaPlanolsFabricacio: String.raw`\\SRVDADES\dades domoli\Fabricacio\PLANOLS\1076`,
   rutaPlanolsTaller: String.raw`\\SRVDADES\taller\planols taller\1076`,
   rutaExcels: String.raw`\\SRVDADES\dades domoli\Costos\COSTOS\1076 -- TAVIL`,
@@ -48,6 +53,7 @@ export const RUTES_PER_DEFECTE: Omit<UserConfig, "accioDocuments"> = {
 };
 
 const STORAGE_KEY = "user_config";
+const EVENT_CANVI = "user-config-changed";
 
 export function obtenirUserConfig(): UserConfig {
   try {
@@ -60,10 +66,21 @@ export function obtenirUserConfig(): UserConfig {
   }
 }
 
+/** Desa la config i avisa la resta de components muntats (p.ex. la pàgina
+ * de Descàrrega) que hi ha una config nova — sense això, un canvi fet des
+ * d'Ajustos (com activar "Entorn de proves") no es veuria fins a recarregar
+ * la pàgina, ja que cada component llegeix localStorage només en muntar-se. */
 export function guardarUserConfig(config: UserConfig): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
   } catch {
     /* silencio */
   }
+  window.dispatchEvent(new CustomEvent<UserConfig>(EVENT_CANVI, { detail: config }));
+}
+
+export function subscriureCanvisUserConfig(callback: (config: UserConfig) => void): () => void {
+  const handler = (e: Event) => callback((e as CustomEvent<UserConfig>).detail);
+  window.addEventListener(EVENT_CANVI, handler);
+  return () => window.removeEventListener(EVENT_CANVI, handler);
 }

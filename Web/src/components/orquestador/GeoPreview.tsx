@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { getGeo } from "@/lib/api";
-import { parseGeo, contornosASvgPaths, geoViewBox, geoCentroNatural, type GeoParseado } from "@/lib/geoParser";
+import {
+  parseGeo,
+  contornosASvgPaths,
+  geoViewBox,
+  geoCentroNatural,
+  type GeoParseado,
+} from "@/lib/geoParser";
 import type { UserConfig } from "@/lib/userConfig";
 
 const ALTURA_GEO = 230; // visible pero equilibrado con el bloque de info de la tarjeta
@@ -38,9 +44,13 @@ export function GeoPreview({ codigoPdm, config }: Props) {
   const [arrastrando, setArrastrando] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
-  const arrastreRef = useRef<{ x: number; y: number; centroInicial: Centro; vbAncho: number; vbAlto: number } | null>(
-    null,
-  );
+  const arrastreRef = useRef<{
+    x: number;
+    y: number;
+    centroInicial: Centro;
+    vbAncho: number;
+    vbAlto: number;
+  } | null>(null);
 
   // Fase 1: observar visibilidad, disparar la carga solo cuando entra en pantalla.
   useEffect(() => {
@@ -106,7 +116,10 @@ export function GeoPreview({ codigoPdm, config }: Props) {
   if (estado === "esperando" || estado === "cargando") {
     return (
       <div ref={sentinelRef} className="border-t border-[var(--panel-border-1)] p-3">
-        <div className="mx-auto animate-pulse rounded bg-[var(--panel-bg-1)]" style={{ height: ALTURA_GEO }} />
+        <div
+          className="mx-auto animate-pulse rounded bg-[var(--panel-bg-1)]"
+          style={{ height: ALTURA_GEO }}
+        />
       </div>
     );
   }
@@ -124,9 +137,7 @@ export function GeoPreview({ codigoPdm, config }: Props) {
     const rect = contenedorRef.current?.getBoundingClientRect();
     if (!rect) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    const vb = geoViewBox(geo, zoom, 0.08, centroActual)
-      .split(" ")
-      .map(Number);
+    const vb = geoViewBox(geo, zoom, 0.08, centroActual).split(" ").map(Number);
     arrastreRef.current = {
       x: e.clientX,
       y: e.clientY,

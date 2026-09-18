@@ -31,7 +31,11 @@ export function EntornProves() {
 
   const onLogEntry = useCallback(async (entry: LogEntry) => {
     const comanda = comandaEsperandoRef.current;
-    if (!comanda || entry.tipo !== "OK" || !entry.msg.includes(`Comanda ${comanda} processada completament`)) {
+    if (
+      !comanda ||
+      entry.tipo !== "OK" ||
+      !entry.msg.includes(`Comanda ${comanda} processada completament`)
+    ) {
       return;
     }
     comandaEsperandoRef.current = null;
@@ -82,13 +86,17 @@ export function EntornProves() {
   };
 
   return (
-    <section className="mt-6 rounded-lg border border-border bg-surface p-5">
+    <section className="mt-6 rounded-2xl border border-dashed border-border bg-[var(--panel-bg-1)] p-5">
       <div className="flex items-center gap-2">
         <FlaskConical className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-medium text-foreground">Entorn de proves</h2>
+        <h2 className="text-sm font-semibold text-foreground">Entorn de proves</h2>
+        <span className="badge-pill bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)]">
+          DEV
+        </span>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        Simula la recepció d'un correu sense esperar que arribi de veritat — útil per verificar el flux pas a pas.
+        Simula la recepció d'un correu sense esperar que arribi de veritat — útil per verificar el
+        flux pas a pas.
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_auto]">
@@ -100,7 +108,7 @@ export function EntornProves() {
             disabled={enviando}
             onChange={(e) => setAssumpte(e.target.value)}
             placeholder="Comanda 4500354139 TAVIL"
-            className="rounded-md border border-border bg-background px-2.5 py-1.5 font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-primary/60 disabled:opacity-40"
+            className="rounded-lg border border-border bg-card px-2.5 py-1.5 font-mono text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
           />
         </label>
 
@@ -111,7 +119,7 @@ export function EntornProves() {
             accept=".pdf"
             disabled={enviando}
             onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)}
-            className="rounded-md border border-border bg-background px-2.5 py-[5px] text-xs text-foreground outline-none file:mr-2 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs disabled:opacity-40"
+            className="rounded-lg border border-border bg-card px-2.5 py-[5px] text-xs text-foreground outline-none file:mr-2 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs disabled:opacity-40"
           />
         </label>
 
@@ -119,16 +127,27 @@ export function EntornProves() {
           type="button"
           onClick={simular}
           disabled={enviando || !assumpte.trim()}
-          className="flex items-center justify-center gap-2 self-end rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex items-center justify-center gap-2 self-end rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-[#2952cc] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <FlaskConical className="h-4 w-4" />}
+          {enviando ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <FlaskConical className="h-4 w-4" />
+          )}
           Simular recepció de correu
         </button>
       </div>
 
       <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        {config.accioDocuments === "descarregar" ? <Download className="h-3 w-3" /> : <Printer className="h-3 w-3" />}
-        Mode actual: {config.accioDocuments === "descarregar" ? "descarregar a l'ordinador" : "imprimir documents"}{" "}
+        {config.accioDocuments === "descarregar" ? (
+          <Download className="h-3 w-3" />
+        ) : (
+          <Printer className="h-3 w-3" />
+        )}
+        Mode actual:{" "}
+        {config.accioDocuments === "descarregar"
+          ? "descarregar a l'ordinador"
+          : "imprimir documents"}{" "}
         <span className="text-muted-foreground/60">(canvia-ho a Ajustos)</span>
       </p>
 

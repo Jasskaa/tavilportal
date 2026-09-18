@@ -58,10 +58,15 @@ export function GrupoComanda({ comanda, piezas }: Props) {
   };
 
   return (
-    <div className="overflow-hidden rounded-md border border-[var(--panel-border-1)] bg-[var(--panel-bg-2)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--panel-border-1)] px-4 py-3">
-        <span className="font-mono text-[16px] font-semibold text-[var(--panel-text-1)]">{comanda}</span>
-        <div className="flex items-center gap-2">
+    <div className="card-elevated overflow-hidden border border-border">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <span className="font-mono text-[16px] font-semibold text-foreground">{comanda}</span>
+          <span className="badge-pill bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)]">
+            {piezas.length} peça{piezas.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
           {(errorDescarga || errorImprimir) && (
             <span className="text-[11px] text-destructive">{errorDescarga || errorImprimir}</span>
           )}
@@ -70,12 +75,12 @@ export function GrupoComanda({ comanda, piezas }: Props) {
             onClick={imprimirTot}
             disabled={imprimiendo}
             title="Imprimir tot"
-            className="flex items-center gap-1.5 rounded border border-[var(--panel-border-1)] px-2.5 py-1.5 text-[12px] text-[var(--panel-text-2)] transition-colors hover:bg-[var(--panel-border-1)] hover:text-[var(--panel-text-1)] disabled:cursor-wait disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-[12px] font-medium text-secondary-foreground transition-colors hover:bg-accent disabled:cursor-wait disabled:opacity-60"
           >
             {imprimiendo ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : okImprimir ? (
-              <Check className="h-3.5 w-3.5 text-success" />
+              <Check className="h-3.5 w-3.5 text-[var(--badge-success-text)]" />
             ) : (
               <Printer className="h-3.5 w-3.5" />
             )}
@@ -86,15 +91,19 @@ export function GrupoComanda({ comanda, piezas }: Props) {
             onClick={descargarTot}
             disabled={descargando}
             title="Descarregar tot"
-            className="flex items-center gap-1.5 rounded border border-[var(--panel-border-1)] px-2.5 py-1.5 text-[12px] text-[var(--panel-text-2)] transition-colors hover:bg-[var(--panel-border-1)] hover:text-[var(--panel-text-1)] disabled:cursor-wait disabled:opacity-60"
+            className="flex items-center gap-1.5 text-[12px] font-medium text-primary transition-colors hover:text-[#2952cc] disabled:cursor-wait disabled:opacity-60"
           >
-            {descargando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            {descargando ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
             Descarregar tot
           </button>
         </div>
       </div>
 
-      <ul className="divide-y divide-[var(--panel-border-1)]">
+      <ul className="divide-y divide-border">
         {piezas.map((p) => (
           <PiezaDescargaCard key={p.file} pieza={p} />
         ))}

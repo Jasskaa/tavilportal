@@ -1,5 +1,11 @@
 import * as React from "react";
-import { obtenirUserConfig, guardarUserConfig, USER_CONFIG_BUIDA, type UserConfig } from "@/lib/userConfig";
+import {
+  obtenirUserConfig,
+  guardarUserConfig,
+  subscriureCanvisUserConfig,
+  USER_CONFIG_BUIDA,
+  type UserConfig,
+} from "@/lib/userConfig";
 
 /**
  * Config personal del usuario (rutas de red), guardada en localStorage.
@@ -16,6 +22,7 @@ export function useUserConfig() {
 
   React.useEffect(() => {
     setConfigState(obtenirUserConfig());
+    return subscriureCanvisUserConfig(setConfigState);
   }, []);
 
   const guardar = React.useCallback((nou: UserConfig) => {

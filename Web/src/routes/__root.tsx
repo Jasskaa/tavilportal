@@ -102,11 +102,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  // "dark" por defecto en el propio marcado (SSR y primer render del
-  // cliente coinciden, sin parpadeo) — si el usuario había elegido "clar"
-  // la vez anterior, RootComponent lo restaura nada más montar.
+  // Tema clar per defecte en el propi marcat (SSR i primer render del
+  // client coincideixen, sense parpelleig) — si l'usuari havia triat "fosc"
+  // la vegada anterior, RootComponent ho restaura nada más montar.
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <HeadContent />
       </head>

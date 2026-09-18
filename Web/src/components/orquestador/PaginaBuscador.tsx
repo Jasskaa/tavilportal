@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { buscarPiezas, type PiezaIndice } from "@/lib/api";
 import { useUserConfig } from "@/hooks/use-user-config";
 import { PiezaPortalCard } from "./PiezaPortalCard";
-import { BotonAjustos } from "./ModalAjustos";
 
 const EASE_HERO = [0.4, 0, 0.2, 1] as const;
 const DUR_HERO = 0.35;
@@ -19,7 +18,9 @@ interface CampoFiltro {
 function InputFiltre({ label, placeholder, value, onChange }: CampoFiltro) {
   return (
     <label className="flex min-w-[140px] flex-1 flex-col gap-1.5">
-      <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--panel-text-5)]">{label}</span>
+      <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--panel-text-5)]">
+        {label}
+      </span>
       <input
         type="text"
         value={value}
@@ -47,7 +48,13 @@ export function PaginaBuscador() {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { config } = useUserConfig();
 
-  const hayAlgo = !!(q.trim() || tractament.trim() || grosor.trim() || codigoPdm.trim() || codigoCliente.trim());
+  const hayAlgo = !!(
+    q.trim() ||
+    tractament.trim() ||
+    grosor.trim() ||
+    codigoPdm.trim() ||
+    codigoCliente.trim()
+  );
 
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
@@ -73,7 +80,6 @@ export function PaginaBuscador() {
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, tractament, grosor, codigoPdm, codigoCliente, hayAlgo, config]);
 
   const netejarFiltres = () => {
@@ -87,15 +93,9 @@ export function PaginaBuscador() {
   const amplariHero = hayAlgo ? "w-full" : "w-[92%] max-w-[820px]";
 
   return (
-    // absolute (no fixed): llena exactamente el área de contenido junto al
-    // sidebar del portal (su padre en Portal.tsx es `relative`), no toda
-    // la pantalla — el sidebar con las otras secciones queda siempre visible.
+    // absolute (no fixed): llena exactamente el área de contenido junto a la
+    // barra superior del portal (su padre en Portal.tsx es `relative`).
     <div className="absolute inset-0 flex flex-col overflow-hidden bg-[var(--panel-bg-0)]">
-      {/* Ajustos — siempre visible arriba a la derecha, en los dos estados */}
-      <div className="absolute right-4 top-4 z-30">
-        <BotonAjustos />
-      </div>
-
       {/* Bloque título + buscador + filtros — hace de morph entre el
           estado centrado inicial y la barra superior fija con resultados. */}
       <motion.div
@@ -110,7 +110,11 @@ export function PaginaBuscador() {
         <motion.div
           layout
           transition={{ duration: DUR_HERO, ease: EASE_HERO }}
-          className={hayAlgo ? "flex w-full items-center gap-4" : "flex w-full flex-col items-center"}
+          className={
+            hayAlgo
+              ? "mx-auto flex w-full max-w-[1400px] items-center gap-4"
+              : "flex w-full flex-col items-center"
+          }
         >
           <motion.span
             layout
@@ -150,7 +154,11 @@ export function PaginaBuscador() {
             className={hayAlgo ? "relative min-w-0 flex-1" : `relative mt-12 ${amplariHero}`}
           >
             <Search
-              className={hayAlgo ? "pointer-events-none absolute left-0 top-1/2 h-4 w-4 -translate-y-1/2" : "pointer-events-none absolute left-0 top-1/2 h-5 w-5 -translate-y-1/2"}
+              className={
+                hayAlgo
+                  ? "pointer-events-none absolute left-0 top-1/2 h-4 w-4 -translate-y-1/2"
+                  : "pointer-events-none absolute left-0 top-1/2 h-5 w-5 -translate-y-1/2"
+              }
               style={{ color: "var(--panel-text-5)" }}
             />
             <input
@@ -168,7 +176,13 @@ export function PaginaBuscador() {
           </motion.div>
         </motion.div>
 
-        <div className={hayAlgo ? "mt-2.5 flex w-full justify-end" : `mt-4 flex ${amplariHero} justify-end`}>
+        <div
+          className={
+            hayAlgo
+              ? "mx-auto mt-2.5 flex w-full max-w-[1400px] justify-end"
+              : `mt-4 flex ${amplariHero} justify-end`
+          }
+        >
           <button
             type="button"
             onClick={() => setFiltrosAbiertos((v) => !v)}
@@ -189,13 +203,37 @@ export function PaginaBuscador() {
               animate={{ opacity: 1, y: 0, height: "auto" }}
               exit={{ opacity: 0, y: -8, height: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className={hayAlgo ? "w-full overflow-hidden" : `${amplariHero} overflow-hidden`}
+              className={
+                hayAlgo
+                  ? "mx-auto w-full max-w-[1400px] overflow-hidden"
+                  : `${amplariHero} overflow-hidden`
+              }
             >
               <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-                <InputFiltre label="Codi client" placeholder="103617..." value={codigoCliente} onChange={setCodigoCliente} />
-                <InputFiltre label="Codi PDM" placeholder="10760000..." value={codigoPdm} onChange={setCodigoPdm} />
-                <InputFiltre label="Tractament" placeholder="Zincat, pintat..." value={tractament} onChange={setTractament} />
-                <InputFiltre label="Grosor" placeholder="2.0..." value={grosor} onChange={setGrosor} />
+                <InputFiltre
+                  label="Codi client"
+                  placeholder="103617..."
+                  value={codigoCliente}
+                  onChange={setCodigoCliente}
+                />
+                <InputFiltre
+                  label="Codi PDM"
+                  placeholder="10760000..."
+                  value={codigoPdm}
+                  onChange={setCodigoPdm}
+                />
+                <InputFiltre
+                  label="Tractament"
+                  placeholder="Zincat, pintat..."
+                  value={tractament}
+                  onChange={setTractament}
+                />
+                <InputFiltre
+                  label="Grosor"
+                  placeholder="2.0..."
+                  value={grosor}
+                  onChange={setGrosor}
+                />
               </div>
               {hiHaFiltres && (
                 <button
@@ -220,37 +258,39 @@ export function PaginaBuscador() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ delay: 0.1, duration: 0.25 }}
-            className="min-h-0 flex-1 overflow-y-auto px-8 py-6"
+            className="min-h-0 flex-1 overflow-y-auto px-10 py-6"
           >
-            {loading && resultados.length === 0 ? null : error ? (
-              <p className="py-16 text-center text-[13px]" style={{ color: "var(--panel-text-5)" }}>
-                {error}
-              </p>
-            ) : buscado && resultados.length === 0 ? (
-              <p className="py-16 text-center text-[13px]" style={{ color: "var(--panel-text-5)" }}>
-                Cap resultat per a «{q}»
-              </p>
-            ) : (
-              <>
-                <p className="mb-3 text-[12px]" style={{ color: "var(--panel-text-5)" }}>
-                  {total > resultados.length
-                    ? `${resultados.length} de ${total} resultats — afina la cerca per veure'ls tots`
-                    : `${total} resultat${total === 1 ? "" : "s"}`}
+            <div className="mx-auto w-full max-w-[1400px]">
+              {loading && resultados.length === 0 ? null : error ? (
+                <p className="py-16 text-center text-[13px]" style={{ color: "var(--panel-text-5)" }}>
+                  {error}
                 </p>
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                  {resultados.map((p, i) => (
-                    <motion.div
-                      key={`${p.codigoCliente}_${p.codigoPdm}`}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 + Math.min(i, 20) * 0.03, duration: 0.25 }}
-                    >
-                      <PiezaPortalCard pieza={p} />
-                    </motion.div>
-                  ))}
-                </div>
-              </>
-            )}
+              ) : buscado && resultados.length === 0 ? (
+                <p className="py-16 text-center text-[13px]" style={{ color: "var(--panel-text-5)" }}>
+                  Cap resultat per a «{q}»
+                </p>
+              ) : (
+                <>
+                  <p className="mb-4 text-[12px]" style={{ color: "var(--panel-text-5)" }}>
+                    {total > resultados.length
+                      ? `${resultados.length} de ${total} resultats — afina la cerca per veure'ls tots`
+                      : `${total} resultat${total === 1 ? "" : "s"}`}
+                  </p>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {resultados.map((p, i) => (
+                      <motion.div
+                        key={`${p.codigoCliente}_${p.codigoPdm}`}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 + Math.min(i, 20) * 0.03, duration: 0.25 }}
+                      >
+                        <PiezaPortalCard pieza={p} />
+                      </motion.div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </motion.main>
         )}
       </AnimatePresence>

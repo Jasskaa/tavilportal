@@ -19,13 +19,6 @@ const COLOR_ROJO = "var(--anulador-rojo)";
 const FONS_ROJO = "var(--anulador-rojo-bg)";
 const COLOR_VERD = "var(--anulador-verd)";
 
-/** Mezcla el color base (rojo/verd) con transparente — reemplaza el
- * truco de sufijo hex de alpha (p.ej. `${hex}66`), que no funciona sobre
- * variables CSS. */
-function conAlpha(color: string, porcentaje: number): string {
-  return `color-mix(in srgb, ${color} ${porcentaje}%, transparent)`;
-}
-
 interface ColumnaProps<T extends { estado: AnuladorEstado }> {
   titulo: string;
   nomItems: string;
@@ -94,14 +87,25 @@ function ColumnaAnulador<T extends { estado: AnuladorEstado }>({
   };
 
   return (
-    <div className="flex min-w-0 flex-col rounded-md border border-[var(--panel-border-1)] bg-[var(--panel-bg-2)] p-5">
+    <div className="card-elevated flex min-w-0 flex-col border border-border p-5">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium uppercase tracking-wider text-[var(--panel-text-1)]">{titulo}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-foreground">{titulo}</h2>
+          <span
+            className={`badge-pill ${
+              itemsAnular.length > 0
+                ? "bg-[var(--badge-danger-bg)] text-[var(--badge-danger-text)]"
+                : "bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)]"
+            }`}
+          >
+            {itemsAnular.length}
+          </span>
+        </div>
         <button
           type="button"
           onClick={recargar}
           disabled={cargando}
-          className="flex items-center gap-1.5 rounded border border-[var(--panel-border-1)] px-2.5 py-1.5 text-xs text-[var(--panel-text-2)] transition-colors hover:bg-[var(--panel-border-1)] hover:text-[var(--panel-text-1)] disabled:cursor-wait disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent disabled:cursor-wait disabled:opacity-50"
         >
           <RefreshCw className={`h-3 w-3 ${cargando ? "animate-spin" : ""}`} />
           Actualitzar
@@ -121,16 +125,22 @@ function ColumnaAnulador<T extends { estado: AnuladorEstado }>({
 
       <div className="mt-4 min-h-[240px]">
         {cargando && !cargado ? (
-          <p className="py-16 text-center text-sm text-[var(--panel-text-4)]">Carregant...</p>
+          <p className="py-16 text-center text-sm text-muted-foreground">Carregant...</p>
         ) : itemsAnular.length === 0 ? (
-          <p className="py-16 text-center text-sm text-[var(--panel-text-4)]">No hi ha items pendents d&apos;anul·lar</p>
+          <p className="py-16 text-center text-sm text-muted-foreground">
+            No hi ha items pendents d&apos;anul·lar
+          </p>
         ) : (
           <ul className="max-h-[520px] space-y-2 overflow-y-auto overflow-x-hidden pr-1">
             {itemsAnular.map((item, i) => (
               <li
                 key={i}
-                className="group rounded-md border px-3 py-2.5"
-                style={{ backgroundColor: FONS_ROJO, borderColor: conAlpha(COLOR_ROJO, 40) }}
+                className="group rounded-xl border px-3 py-2.5"
+                style={{
+                  backgroundColor: FONS_ROJO,
+                  borderColor: "transparent",
+                  borderLeft: `3px solid ${COLOR_ROJO}`,
+                }}
               >
                 <div className="flex items-start justify-between gap-3">
                   <span
@@ -141,18 +151,11 @@ function ColumnaAnulador<T extends { estado: AnuladorEstado }>({
                   </span>
                   <span className="flex shrink-0 items-center gap-1">
                     {extraBadgeDe && (
-                      <span className="rounded bg-[var(--panel-border-1)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--panel-text-3)]">
+                      <span className="badge-pill bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)]">
                         {extraBadgeDe(item)}
                       </span>
                     )}
-                    <span
-                      className="rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide"
-                      style={{
-                        color: COLOR_ROJO,
-                        backgroundColor: conAlpha(COLOR_ROJO, 13),
-                        border: `1px solid ${conAlpha(COLOR_ROJO, 33)}`,
-                      }}
-                    >
+                    <span className="badge-pill bg-[var(--badge-danger-bg)] text-[var(--badge-danger-text)] font-semibold">
                       ANULAR
                     </span>
                   </span>
@@ -177,7 +180,7 @@ function ColumnaAnulador<T extends { estado: AnuladorEstado }>({
         type="button"
         onClick={anular}
         disabled={!itemsAnular.length || ejecutando || cargando}
-        className="mt-4 flex items-center justify-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-30"
+        className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-30"
       >
         {ejecutando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
         {labelBoton}
@@ -198,7 +201,9 @@ export function PaginaAnulador() {
           cargar={getAnuladorPlanols}
           ejecutar={ejecutarAnuladorPlanols}
           nombreDe={(item) => item.archivo_actual}
-          revisioDe={(item) => `Versió correcta: REV${String(item.revision_activa).padStart(2, "0")} · .${item.ext}`}
+          revisioDe={(item) =>
+            `Versió correcta: REV${String(item.revision_activa).padStart(2, "0")} · .${item.ext}`
+          }
         />
         <ColumnaAnulador<AnuladorItemGeo>
           titulo="Geos"

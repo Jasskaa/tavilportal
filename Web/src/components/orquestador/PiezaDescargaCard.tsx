@@ -26,17 +26,23 @@ export function PiezaDescargaCard({ pieza }: Props) {
     <li className="flex flex-col gap-2 px-4 py-2.5">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <span className="font-mono text-[14px] text-[var(--panel-text-1)]">{codigo || "—"}</span>
-          <p className="truncate text-[13px] text-[var(--panel-text-3)]">{pieza.desc || pieza.file}</p>
+          <span className="font-mono text-[14px] text-foreground">{codigo || "—"}</span>
+          <p className="truncate text-[13px] text-muted-foreground">{pieza.desc || pieza.file}</p>
         </div>
 
         <button
           type="button"
           disabled={!pieza.tiene_excel}
           title={pieza.tiene_excel ? "Excel" : "Excel no disponible"}
-          onClick={pieza.tiene_excel ? () => window.open(urlArchivoExcel(codigoCliente, config), "_blank") : undefined}
-          className={`flex shrink-0 items-center gap-1 rounded border border-[var(--panel-border-1)] px-2 py-1.5 text-[11px] text-[var(--panel-text-2)] transition-colors ${
-            pieza.tiene_excel ? "hover:bg-[var(--panel-border-1)] hover:text-[var(--panel-text-1)]" : "cursor-not-allowed opacity-30"
+          onClick={
+            pieza.tiene_excel
+              ? () => window.open(urlArchivoExcel(codigoCliente, config), "_blank")
+              : undefined
+          }
+          className={`flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1.5 text-[11px] font-medium text-secondary-foreground transition-colors ${
+            pieza.tiene_excel
+              ? "hover:bg-accent hover:text-primary"
+              : "cursor-not-allowed opacity-30"
           }`}
         >
           <FileSpreadsheet className="h-3 w-3 shrink-0" />
@@ -48,14 +54,14 @@ export function PiezaDescargaCard({ pieza }: Props) {
         <button
           type="button"
           onClick={() => setModalObert(true)}
-          className="flex w-fit items-center gap-1.5 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[11px] font-medium text-warning transition-colors hover:bg-warning/20"
+          className="badge-pill w-fit bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)] transition-opacity hover:opacity-80"
         >
           <TriangleAlert className="h-3 w-3" />
           Diferències detectades ({pieza.num_diferencias ?? 0})
         </button>
       )}
       {pieza.tiene_diferencias === false && (
-        <span className="w-fit rounded-full border border-[var(--panel-border-1)] px-2.5 py-1 text-[11px] text-[var(--panel-text-4)]">
+        <span className="badge-pill w-fit bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)]">
           Sense canvis
         </span>
       )}
