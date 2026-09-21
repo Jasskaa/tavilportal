@@ -8,7 +8,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { getImpresoras, getImpresoraPreferida, setImpresoraPreferida } from "@/lib/api";
+import {
+  getImpresoras,
+  getImpresoraPreferida,
+  setImpresoraPreferida,
+  getDeteccioCorreu,
+  setDeteccioCorreu,
+} from "@/lib/api";
 import { obtenirTemaGuardat, aplicarTema, type Tema } from "@/lib/tema";
 import {
   obtenirUserConfig,
@@ -60,6 +66,8 @@ export function BotonAjustos() {
   const [guardat, setGuardat] = useState(false);
   const [tema, setTema] = useState<Tema>("fosc");
   const [rutes, setRutes] = useState<UserConfig>(USER_CONFIG_BUIDA);
+  const [deteccioCorreu, setDeteccioCorreuState] = useState(true);
+  const [errorDeteccio, setErrorDeteccio] = useState<string | null>(null);
 
   useEffect(() => {
     if (!obert) return;
@@ -73,11 +81,21 @@ export function BotonAjustos() {
       .then(({ impresoras }) => setImpresoras(impresoras))
       .catch((e) => setError(e instanceof Error ? e.message : "Error carregant impressores"))
       .finally(() => setCargando(false));
+
+    setErrorDeteccio(null);
+    getDeteccioCorreu()
+      .then(({ activa }) => setDeteccioCorreuState(activa))
+      .catch((e) => setErrorDeteccio(e instanceof Error ? e.message : "Error carregant l'estat"));
   }, [obert]);
 
-  const guardar = () => {
+  const guardar = async () => {
     setImpresoraPreferida(seleccionada);
     guardarUserConfig(rutes);
+    try {
+      await setDeteccioCorreu(deteccioCorreu);
+    } catch {
+      /* silencio — l'interruptor ja reflecteix el que l'usuari va triar */
+    }
     setGuardat(true);
     setTimeout(() => setGuardat(false), 2000);
   };
@@ -188,6 +206,24 @@ export function BotonAjustos() {
                 Només afecta el flux automàtic (correu) i "Entorn de proves" — la descàrrega manual
                 ja té els seus propis botons "Imprimir tot"/"Descarregar tot" per comanda.
               </p>
+            </div>
+
+            <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-card px-3 py-3">
+              <div>
+                <span className="text-sm font-medium text-foreground">
+                  Detectar correus en segon pla
+                </span>
+                <p className="mt-0.5 text-[11px] text-muted-foreground/80">
+                  Amb això desactivat, els correus nous de Tavil no es processaran automàticament
+                  — només afecta aquest PC. Útil per pausar-ho temporalment sense desendollar res.
+                </p>
+                {errorDeteccio && <p className="mt-1 text-[11px] text-destructive">{errorDeteccio}</p>}
+              </div>
+              <Switch
+                checked={deteccioCorreu}
+                onCheckedChange={setDeteccioCorreuState}
+                aria-label="Detectar correus en segon pla"
+              />
             </div>
           </div>
         )}

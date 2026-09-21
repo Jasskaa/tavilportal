@@ -295,14 +295,21 @@ export function PaginaDescarga() {
         <section className="card-elevated border border-border p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground">Monitorització automàtica</h2>
-            <span
-              className={`flex items-center gap-1.5 text-xs ${sistemaActivo ? "text-[var(--badge-success-text)]" : "text-muted-foreground"}`}
-            >
+            {sistemaActivo && estadoCola?.deteccio_activa === false ? (
+              <span className="flex items-center gap-1.5 text-xs text-[var(--badge-warning-text)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--badge-warning-text)]" />
+                Pausat (Ajustos)
+              </span>
+            ) : (
               <span
-                className={`h-1.5 w-1.5 rounded-full ${sistemaActivo ? "animate-pulse bg-[var(--badge-success-text)]" : "bg-muted-foreground"}`}
-              />
-              {sistemaActivo ? "Sistema actiu" : "Sense connexió"}
-            </span>
+                className={`flex items-center gap-1.5 text-xs ${sistemaActivo ? "text-[var(--badge-success-text)]" : "text-muted-foreground"}`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${sistemaActivo ? "animate-pulse bg-[var(--badge-success-text)]" : "bg-muted-foreground"}`}
+                />
+                {sistemaActivo ? "Sistema actiu" : "Sense connexió"}
+              </span>
+            )}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">Monitoritzant correu de Tavil</p>
 

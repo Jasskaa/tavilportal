@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, Trash2, ChevronDown, Check } from "lucide-react";
+import { RefreshCw, Trash2, ChevronDown, Check, Copy } from "lucide-react";
 import { getHistorial, marcarPiezaOk, limpiarHistorialOk, type PiezaHistorial } from "@/lib/api";
 
 function formatarData(iso: string): string {
@@ -12,6 +12,47 @@ function formatarData(iso: string): string {
   }
 }
 
+interface CampCopiableProps {
+  label: string;
+  value: string;
+}
+
+function CampCopiable({ label, value }: CampCopiableProps) {
+  const [copiat, setCopiat] = useState(false);
+
+  const copiar = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiat(true);
+      setTimeout(() => setCopiat(false), 1500);
+    } catch {
+      /* silencio */
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2">
+      <div className="min-w-0">
+        <span className="text-[10px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
+          {label}
+        </span>
+        <p className="truncate text-sm text-foreground">{value || "—"}</p>
+      </div>
+      <button
+        type="button"
+        onClick={copiar}
+        disabled={!value}
+        title={`Copiar ${label.toLowerCase()}`}
+        aria-label={`Copiar ${label.toLowerCase()}`}
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        {copiat ? <Check className="h-3.5 w-3.5 text-[var(--badge-success-text)]" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+    </div>
+  );
+}
+
 interface FilaProps {
   pieza: PiezaHistorial;
   onToggle: (pieza: PiezaHistorial) => void;
@@ -19,52 +60,70 @@ interface FilaProps {
 }
 
 function FilaHistorial({ pieza, onToggle, completada }: FilaProps) {
+  const [detallObert, setDetallObert] = useState(false);
   const codigo = pieza.ref || pieza.file;
 
   return (
     <li
-      className={`flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-opacity ${
-        completada ? "opacity-60" : ""
-      }`}
+      className={`rounded-xl border border-border bg-card transition-opacity ${completada ? "opacity-60" : ""}`}
     >
-      <button
-        type="button"
-        onClick={() => onToggle(pieza)}
-        title={completada ? "Marcar com a pendent" : "Marcar com a completada"}
-        aria-label={completada ? "Marcar com a pendent" : "Marcar com a completada"}
-        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
-          completada
-            ? "border-primary bg-primary text-primary-foreground"
-            : "border-muted-foreground/40 hover:border-primary"
-        }`}
-      >
-        {completada && <Check className="h-3 w-3" />}
-      </button>
+      <div className="flex items-center gap-3 px-4 py-3">
+        <button
+          type="button"
+          onClick={() => onToggle(pieza)}
+          title={completada ? "Marcar com a pendent" : "Marcar com a completada"}
+          aria-label={completada ? "Marcar com a pendent" : "Marcar com a completada"}
+          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
+            completada
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-muted-foreground/40 hover:border-primary"
+          }`}
+        >
+          {completada && <Check className="h-3 w-3" />}
+        </button>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span
-            className={`font-mono text-sm font-medium text-foreground ${completada ? "line-through" : ""}`}
-          >
-            {codigo || "—"}
-          </span>
-          <span className="badge-pill bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)]">
-            {pieza.comanda}
-          </span>
-          <span
-            className={`badge-pill ${
-              pieza.status === "duplicado"
-                ? "bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)]"
-                : "bg-[var(--badge-info-bg)] text-[var(--badge-info-text)]"
-            }`}
-          >
-            {pieza.status === "duplicado" ? "Duplicat" : "Nova"}
-          </span>
-        </div>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">{pieza.desc || pieza.file}</p>
+        <button
+          type="button"
+          onClick={() => setDetallObert((v) => !v)}
+          className="min-w-0 flex-1 text-left"
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className={`font-mono text-sm font-medium text-foreground ${completada ? "line-through" : ""}`}
+            >
+              {codigo || "—"}
+            </span>
+            <span className="badge-pill bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)]">
+              {pieza.comanda}
+            </span>
+            <span
+              className={`badge-pill ${
+                pieza.status === "duplicado"
+                  ? "bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)]"
+                  : "bg-[var(--badge-info-bg)] text-[var(--badge-info-text)]"
+              }`}
+            >
+              {pieza.status === "duplicado" ? "Duplicat" : "Nova"}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{pieza.desc || pieza.file}</p>
+        </button>
+
+        <span className="shrink-0 text-xs text-muted-foreground">{formatarData(pieza.fecha)}</span>
+        <ChevronDown
+          className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform"
+          style={{ transform: detallObert ? "rotate(180deg)" : "rotate(0deg)" }}
+        />
       </div>
 
-      <span className="shrink-0 text-xs text-muted-foreground">{formatarData(pieza.fecha)}</span>
+      {detallObert && (
+        <div className="grid grid-cols-1 gap-2 border-t border-border px-4 py-3 sm:grid-cols-2">
+          <CampCopiable label="Descripció" value={pieza.desc} />
+          <CampCopiable label="Ref. client" value={pieza.refCliente} />
+          <CampCopiable label="Tractament" value={pieza.tract} />
+          <CampCopiable label="Gruix" value={pieza.grosor} />
+        </div>
+      )}
     </li>
   );
 }

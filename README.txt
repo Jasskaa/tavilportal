@@ -27,17 +27,36 @@ REQUISITS PREVIS
    servidor fa servir sempre rutes de xarxa completes, mai lletres d'unitat
    com P:\ o M:\, aixi que no cal mapejar cap unitat -- nomes que la xarxa
    arribi a aquests dos servidors, com passa a qualsevol PC del taller).
+5. SumatraPDF (nomes si aquest PC ha d'imprimir documents) -> instal.la'l
+   amb l'opcio "nomes per al meu usuari" perque quedi a la carpeta
+   LOCALAPPDATA de l'usuari -- es on el servidor el busca automaticament.
 
 INSTAL.LACIO (primera vegada)
 -------------------------------
 1. Fes clic dret a INSTALAR.bat -> "Executar com administrador"
    (cal per crear els serveis de Windows i les regles de firewall).
-2. Espera que acabi (5-10 minuts la primera vegada -- instal.la dependencies
+2. La primera vegada et dira que falta Servidor\.env i s'aturara despres
+   de crear-lo buit a partir de la plantilla -- obre'l amb el Bloc de
+   notes i omple-hi el correu i la contrasenya del portal SharePoint de
+   Tavil (PORTAL_USUARIO / PORTAL_CONTRASENYA). Despres, torna a executar
+   INSTALAR.bat.
+3. Espera que acabi (5-10 minuts la primera vegada -- instal.la dependencies
    de Python, el navegador Chromium per a Playwright, i compila l'app web).
-3. Al final et mostrara l'adreca del portal, per exemple:
+4. Al final et mostrara l'adreca del portal, per exemple:
      Portal web: http://192.168.0.45:3000
    Apunta-la -- es la que fara servir tothom al taller per accedir-hi.
-4. Obre aquesta adreca al navegador des de qualsevol PC de la mateixa xarxa.
+5. Obre aquesta adreca al navegador des de qualsevol PC de la mateixa xarxa.
+6. Ves a l'engranatge (Ajustos) -> Impressora, i tria la impressora
+   d'aquest PC de la llista -- es guarda al navegador, no cal fer-ho des
+   del codi.
+
+NOTA IMPORTANT sobre l'usuari del servei (nomes si cal imprimir):
+Si has instal.lat SumatraPDF per al teu usuari normal (no per a tots els
+usuaris), el servei "Orquestador1076" -- que per defecte corre com a
+LocalSystem -- no el trobara ni tindra acces als controladors d'impressora
+del teu usuari. Si la impressio no funciona, obre services.msc -> propietats
+del servei "Orquestador1076" -> pestanya "Inicia sessio" -> "Aquest compte" ->
+posa el teu usuari i contrasenya de Windows, i reinicia el servei.
 
 Si instal.les en un PC que ja tenia una versio anterior corrent amb altres
 noms de servei, desinstal.la primer l'antiga (o para'ls manualment des de
@@ -90,24 +109,26 @@ DESINSTAL.LAR
 --------------
 Fes clic dret a DESINSTALAR.bat -> "Executar com administrador".
 Aixo nomes elimina els serveis de Windows i les regles de firewall -- no
-esborra cap arxiu ni les dades de C:\DXF TEMPORAL\MACROS (historial de
-peces, logs...). Esborra-ho manualment si vols eliminar-ho tot.
+esborra cap arxiu ni les dades de \\SRVDADES\dades domoli\Portal Tavil
+(historial de peces, index de cerca, logs...), que es comparteixen amb la
+resta d'instal.lacions. Esborra-ho manualment si vols eliminar-ho tot.
 
 SI HI HA PROBLEMES
 --------------------
-- Logs del servidor API:  C:\DXF TEMPORAL\MACROS\servidor_log.txt
-                           C:\DXF TEMPORAL\MACROS\servidor_error.txt
-- Logs del servidor web:  C:\DXF TEMPORAL\MACROS\web_servidor_log.txt
-                          C:\DXF TEMPORAL\MACROS\web_servidor_error.txt
+- Logs del servidor API:  \\SRVDADES\dades domoli\Portal Tavil\logs\servidor_log.txt
+                           \\SRVDADES\dades domoli\Portal Tavil\logs\servidor_error.txt
+                           \\SRVDADES\dades domoli\Portal Tavil\logs\servidor.log
+- Logs del servidor web:  \\SRVDADES\dades domoli\Portal Tavil\logs\web_servidor_log.txt
+                          \\SRVDADES\dades domoli\Portal Tavil\logs\web_servidor_error.txt
 - Comprova que els serveis corren: obre services.msc i busca
-  "OrquestadorAPI" i "OrquestadorWeb" (han d'estar "En execucio").
+  "Orquestador1076" i "WebOrquestador1076" (han d'estar "En execucio").
 - Comprova que el port no esta ocupat per una altra cosa:
     netstat -ano | findstr :8080
     netstat -ano | findstr :3000
 - Si canvies alguna cosa manualment al codi sense fer servir
   ACTUALITZAR.bat, cal reiniciar els serveis perque s'apliqui:
-    net stop OrquestadorAPI  &  net start OrquestadorAPI
-    net stop OrquestadorWeb  &  net start OrquestadorWeb
+    net stop Orquestador1076  &  net start Orquestador1076
+    net stop WebOrquestador1076  &  net start WebOrquestador1076
 - Panell "Entorn de proves" (Descarrega de comandes): ensenya en directe
   cada pas del proces -- el primer lloc on mirar si una comanda no es
   processa be.

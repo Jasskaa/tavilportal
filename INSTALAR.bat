@@ -56,10 +56,34 @@ if not exist "\\TRUMPFSRV\Maquinas" (
     echo.
 )
 
-REM --- Crear estructura de carpetes que fa servir el servidor ---
+REM --- Crear estructura de carpetes que fa servir el servidor a
+REM     \\SRVDADES (historial, index de cerca, PDFs de correu, logs -- tot
+REM     compartit entre totes les instal.lacions, veure CARPETA_PORTAL_TAVIL
+REM     a main.py) ---
 echo Creant carpetes necessaries...
-mkdir "C:\DXF TEMPORAL\MACROS\temp_pdf" 2>nul
-mkdir "C:\DXF TEMPORAL\Automatizacion\temp" 2>nul
+mkdir "\\SRVDADES\dades domoli\Portal Tavil\temp_pdf" 2>nul
+mkdir "\\SRVDADES\dades domoli\Portal Tavil\logs" 2>nul
+
+REM --- Credencials (.env) -- MAI es puja a GitHub (.gitignore), aixi que
+REM     un clon nou del repo no en te. Sense aixo el login al portal
+REM     SharePoint fallaria en silenci. Si no existeix, es crea a partir
+REM     de la plantilla i s'atura per obligar a omplir-lo abans de seguir. ---
+if not exist "%~dp0Servidor\.env" (
+    echo.
+    echo ============================================
+    echo   ATENCIO: falta el fitxer .env
+    echo ============================================
+    copy "%~dp0Servidor\.env.example" "%~dp0Servidor\.env" >nul
+    echo S'ha creat Servidor\.env a partir de la plantilla, buit.
+    echo.
+    echo Obre Servidor\.env amb el Bloc de notes i omple:
+    echo   PORTAL_USUARIO=correu del portal SharePoint de Tavil
+    echo   PORTAL_CONTRASENYA=contrasenya d'aquest correu
+    echo.
+    echo Torna a executar INSTALAR.bat quan ho tinguis omplert.
+    pause
+    exit /b 1
+)
 
 REM --- Instal.lar dependencies Python ---
 echo.
@@ -112,51 +136,51 @@ echo Python:  %PYTHON_EXE%
 echo Node.js: %NODE_EXE%
 
 REM --- Desinstal.lar serveis anteriors d'aquest instal.lador si existien ---
-"%~dp0nssm.exe" stop OrquestadorAPI >nul 2>&1
-"%~dp0nssm.exe" remove OrquestadorAPI confirm >nul 2>&1
-"%~dp0nssm.exe" stop OrquestadorWeb >nul 2>&1
-"%~dp0nssm.exe" remove OrquestadorWeb confirm >nul 2>&1
+"%~dp0nssm.exe" stop Orquestador1076 >nul 2>&1
+"%~dp0nssm.exe" remove Orquestador1076 confirm >nul 2>&1
+"%~dp0nssm.exe" stop WebOrquestador1076 >nul 2>&1
+"%~dp0nssm.exe" remove WebOrquestador1076 confirm >nul 2>&1
 
 REM --- Servei API (FastAPI / uvicorn, port 8080) ---
 echo.
-echo Instal.lant servei API (OrquestadorAPI)...
-"%~dp0nssm.exe" install OrquestadorAPI "%PYTHON_EXE%"
-"%~dp0nssm.exe" set OrquestadorAPI AppDirectory "%~dp0Servidor"
-"%~dp0nssm.exe" set OrquestadorAPI AppParameters "-m uvicorn main:app --host 0.0.0.0 --port 8080"
-"%~dp0nssm.exe" set OrquestadorAPI AppStdout "C:\DXF TEMPORAL\MACROS\servidor_log.txt"
-"%~dp0nssm.exe" set OrquestadorAPI AppStderr "C:\DXF TEMPORAL\MACROS\servidor_error.txt"
-"%~dp0nssm.exe" set OrquestadorAPI AppRotateFiles 1
-"%~dp0nssm.exe" set OrquestadorAPI AppRotateBytes 5000000
-"%~dp0nssm.exe" set OrquestadorAPI Start SERVICE_AUTO_START
+echo Instal.lant servei API (Orquestador1076)...
+"%~dp0nssm.exe" install Orquestador1076 "%PYTHON_EXE%"
+"%~dp0nssm.exe" set Orquestador1076 AppDirectory "%~dp0Servidor"
+"%~dp0nssm.exe" set Orquestador1076 AppParameters "-m uvicorn main:app --host 0.0.0.0 --port 8080"
+"%~dp0nssm.exe" set Orquestador1076 AppStdout "\\SRVDADES\dades domoli\Portal Tavil\logs\servidor_log.txt"
+"%~dp0nssm.exe" set Orquestador1076 AppStderr "\\SRVDADES\dades domoli\Portal Tavil\logs\servidor_error.txt"
+"%~dp0nssm.exe" set Orquestador1076 AppRotateFiles 1
+"%~dp0nssm.exe" set Orquestador1076 AppRotateBytes 5000000
+"%~dp0nssm.exe" set Orquestador1076 Start SERVICE_AUTO_START
 
 REM --- Servei Web (servidor Node.js SSR de TanStack Start, port 3000) ---
 REM     IMPORTANT: aquesta app NO es una SPA estatica -- fa server-side
 REM     rendering amb Nitro/TanStack Start, cal executar-la amb Node.js
 REM     (.output\server\index.mjs), no serveix fer "python -m http.server".
-echo Instal.lant servei Web (OrquestadorWeb)...
-"%~dp0nssm.exe" install OrquestadorWeb "%NODE_EXE%"
-"%~dp0nssm.exe" set OrquestadorWeb AppDirectory "%~dp0Web"
-"%~dp0nssm.exe" set OrquestadorWeb AppParameters ".output\server\index.mjs"
-"%~dp0nssm.exe" set OrquestadorWeb AppEnvironmentExtra PORT=3000 HOST=0.0.0.0
-"%~dp0nssm.exe" set OrquestadorWeb AppStdout "C:\DXF TEMPORAL\MACROS\web_servidor_log.txt"
-"%~dp0nssm.exe" set OrquestadorWeb AppStderr "C:\DXF TEMPORAL\MACROS\web_servidor_error.txt"
-"%~dp0nssm.exe" set OrquestadorWeb AppRotateFiles 1
-"%~dp0nssm.exe" set OrquestadorWeb AppRotateBytes 5000000
-"%~dp0nssm.exe" set OrquestadorWeb Start SERVICE_AUTO_START
+echo Instal.lant servei Web (WebOrquestador1076)...
+"%~dp0nssm.exe" install WebOrquestador1076 "%NODE_EXE%"
+"%~dp0nssm.exe" set WebOrquestador1076 AppDirectory "%~dp0Web"
+"%~dp0nssm.exe" set WebOrquestador1076 AppParameters ".output\server\index.mjs"
+"%~dp0nssm.exe" set WebOrquestador1076 AppEnvironmentExtra PORT=3000 HOST=0.0.0.0
+"%~dp0nssm.exe" set WebOrquestador1076 AppStdout "\\SRVDADES\dades domoli\Portal Tavil\logs\web_servidor_log.txt"
+"%~dp0nssm.exe" set WebOrquestador1076 AppStderr "\\SRVDADES\dades domoli\Portal Tavil\logs\web_servidor_error.txt"
+"%~dp0nssm.exe" set WebOrquestador1076 AppRotateFiles 1
+"%~dp0nssm.exe" set WebOrquestador1076 AppRotateBytes 5000000
+"%~dp0nssm.exe" set WebOrquestador1076 Start SERVICE_AUTO_START
 
 REM --- Regles de firewall ---
 echo.
 echo Configurant firewall...
-netsh advfirewall firewall delete rule name="OrquestadorAPI" >nul 2>&1
-netsh advfirewall firewall delete rule name="OrquestadorWeb" >nul 2>&1
-netsh advfirewall firewall add rule name="OrquestadorAPI" dir=in action=allow protocol=TCP localport=8080 >nul
-netsh advfirewall firewall add rule name="OrquestadorWeb" dir=in action=allow protocol=TCP localport=3000 >nul
+netsh advfirewall firewall delete rule name="Orquestador1076" >nul 2>&1
+netsh advfirewall firewall delete rule name="WebOrquestador1076" >nul 2>&1
+netsh advfirewall firewall add rule name="Orquestador1076" dir=in action=allow protocol=TCP localport=8080 >nul
+netsh advfirewall firewall add rule name="WebOrquestador1076" dir=in action=allow protocol=TCP localport=3000 >nul
 
 REM --- Arrancar serveis ---
 echo.
 echo Arrancant serveis...
-net start OrquestadorAPI
-net start OrquestadorWeb
+net start Orquestador1076
+net start WebOrquestador1076
 
 REM --- Obtenir IP local (orientatiu -- si el PC te mes d'un adaptador de
 REM     xarxa pot mostrar-ne una que no toca; comprova-ho amb "ipconfig") ---

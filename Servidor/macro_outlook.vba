@@ -17,14 +17,15 @@ Attribute VB_Customizable = True
 Const SERVIDOR As String = "http://127.0.0.1:8080"
 
 ' Carpeta on es guarden temporalment els PDF adjunts dels correus, abans que
-' el servidor els reculli. Ha de coincidir amb el que fa servir main.py
-' (RUTA_TEMP_PDF).
-Const RUTA_TEMP_PDF As String = "C:\DXF TEMPORAL\MACROS\temp_pdf\"
+' el servidor els reculli. Ha de coincidir EXACTAMENT amb el que fa servir
+' main.py (RUTA_TEMP_PDF) -- viu a \\SRVDADES perque es comparteix entre
+' totes les instal.lacions (veure CARPETA_PORTAL_TAVIL a main.py).
+Const RUTA_TEMP_PDF As String = "\\SRVDADES\dades domoli\Portal Tavil\temp_pdf\"
 
 ' Arxiu on es deixa constancia de l'assumpte de cada correu detectat (backup
 ' -- el servidor tambe el rep directament via POST /auto-descargar, aixo
 ' nomes serveix per si calgues reprocessar-ho amb el polling de l'EWS).
-Const RUTA_TXT As String = "C:\DXF TEMPORAL\MACROS\inbox_tavil.txt"
+Const RUTA_TXT As String = "\\SRVDADES\dades domoli\Portal Tavil\inbox_tavil.txt"
 
 ' Remitents autoritzats -- nomes es processen correus d'aquestes adreces.
 ' Per afegir-ne un de nou, augmenta l'index superior de l'array (ara 0 a 3,

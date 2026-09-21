@@ -18,14 +18,14 @@ if not exist "%~dp0nssm.exe" (
 )
 
 echo Aturant i eliminant serveis...
-"%~dp0nssm.exe" stop OrquestadorAPI >nul 2>&1
-"%~dp0nssm.exe" remove OrquestadorAPI confirm >nul 2>&1
-"%~dp0nssm.exe" stop OrquestadorWeb >nul 2>&1
-"%~dp0nssm.exe" remove OrquestadorWeb confirm >nul 2>&1
+"%~dp0nssm.exe" stop Orquestador1076 >nul 2>&1
+"%~dp0nssm.exe" remove Orquestador1076 confirm >nul 2>&1
+"%~dp0nssm.exe" stop WebOrquestador1076 >nul 2>&1
+"%~dp0nssm.exe" remove WebOrquestador1076 confirm >nul 2>&1
 
 echo Eliminant regles de firewall...
-netsh advfirewall firewall delete rule name="OrquestadorAPI" >nul 2>&1
-netsh advfirewall firewall delete rule name="OrquestadorWeb" >nul 2>&1
+netsh advfirewall firewall delete rule name="Orquestador1076" >nul 2>&1
+netsh advfirewall firewall delete rule name="WebOrquestador1076" >nul 2>&1
 
 echo.
 echo Desinstal.lat correctament.

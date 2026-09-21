@@ -1,6 +1,14 @@
 import type { UserConfig } from "./userConfig";
 
-const BASE = "http://192.168.0.166:8080";
+/**
+ * Cada PC corre la seva pròpia instal·lació completa (Servidor a port 8080
+ * + Web a port 3000), independent de les altres — cadascú amb el seu propi
+ * correu/portal/rutes. Per això el backend a contactar és sempre el de LA
+ * MATEIXA màquina que serveix aquesta pàgina (window.location.hostname),
+ * mai una IP fixa — una IP fixa faria que totes les instal·lacions
+ * acabessin trucant al backend d'un únic PC en comptes del propi.
+ */
+const BASE = `http://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:8080`;
 
 /** Una diferencia detectada por el comparador de plànols — ver
  * comparar_planols() en el servidor. `bbox` no viaja al frontend (solo se
@@ -48,11 +56,32 @@ export interface ColaEstado {
   piezas_listas: PiezaResult[];
   comandas_listas: string[];
   errores_recientes: string[];
+  deteccio_activa: boolean;
 }
 
 export async function getColaEstado(): Promise<ColaEstado> {
   const res = await fetch(`${BASE}/cola-estado`, { signal: AbortSignal.timeout(5000) });
   if (!res.ok) throw new Error(`Error: ${res.status}`);
+  return res.json();
+}
+
+/** "Detectar correus en segon pla" (Ajustos > Impressora) -- NOMÉS afecta
+ * aquest PC (cada instal·lació té el seu propi correu/cua). No es guarda
+ * al navegador: viu al servidor, per això es llegeix/desa via API. */
+export async function getDeteccioCorreu(): Promise<{ activa: boolean }> {
+  const res = await fetch(`${BASE}/config/deteccio-correu`, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(await extraerMensajeError(res));
+  return res.json();
+}
+
+export async function setDeteccioCorreu(activa: boolean): Promise<{ ok: boolean; activa: boolean }> {
+  const res = await fetch(`${BASE}/config/deteccio-correu`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ activa }),
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!res.ok) throw new Error(await extraerMensajeError(res));
   return res.json();
 }
 
@@ -363,6 +392,21 @@ export async function reindexar(config?: UserConfig): Promise<{ ok: boolean; est
   return res.json();
 }
 
+export interface IndiceEstado {
+  indexando: boolean;
+  total: number;
+  ultimo_indexado: string;
+}
+
+/** Estat NOMÉS-lectura de l'índex (no en dispara cap reindexat) — es fa
+ * servir per fer polling després de prémer "Actualitzar índex" i saber
+ * quan el reindexat disparat amb reindexar() ha acabat. */
+export async function getIndiceEstado(): Promise<IndiceEstado> {
+  const res = await fetch(`${BASE}/indice-estado`, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(await extraerMensajeError(res));
+  return res.json();
+}
+
 // =====================================================================
 // ARCHIVOS DEL PORTAL — Plànol client / Plànol taller / Excel
 //
@@ -371,7 +415,7 @@ export async function reindexar(config?: UserConfig): Promise<{ ok: boolean; est
 // y sea el NAVEGADOR DEL USUARIO quien descargue/abra el archivo.
 //
 // Antes estos endpoints eran POST + os.startfile() en el servidor — pero
-// el servidor corre como servicio Windows en 192.168.0.166, así que
+// el servidor corre como servicio Windows en el PC que lo aloja, así que
 // os.startfile() abría el archivo ahí, no en el PC de quien pulsaba el
 // botón. Con GET + FileResponse el archivo viaja por HTTP hasta el
 // navegador del usuario, que es quien de verdad lo abre en su PC.

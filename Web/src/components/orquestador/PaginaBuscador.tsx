@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { Search, ChevronDown } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Search, ChevronDown, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { buscarPiezas, type PiezaIndice } from "@/lib/api";
+import { buscarPiezas, reindexar, getIndiceEstado, type PiezaIndice } from "@/lib/api";
 import { useUserConfig } from "@/hooks/use-user-config";
 import { PiezaPortalCard } from "./PiezaPortalCard";
 
@@ -45,7 +45,9 @@ export function PaginaBuscador() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [buscado, setBuscado] = useState(false);
+  const [actualitzantIndex, setActualitzantIndex] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollIndex = useRef<ReturnType<typeof setInterval> | null>(null);
   const { config } = useUserConfig();
 
   const hayAlgo = !!(
@@ -56,6 +58,20 @@ export function PaginaBuscador() {
     codigoCliente.trim()
   );
 
+  const executarCerca = useCallback(() => {
+    if (!hayAlgo) return;
+    setLoading(true);
+    setError(null);
+    buscarPiezas({ q, tractament, grosor, codigoPdm, codigoCliente }, config)
+      .then(({ resultados, total }) => {
+        setResultados(resultados);
+        setTotal(total);
+        setBuscado(true);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Error al buscar"))
+      .finally(() => setLoading(false));
+  }, [q, tractament, grosor, codigoPdm, codigoCliente, hayAlgo, config]);
+
   useEffect(() => {
     if (timer.current) clearTimeout(timer.current);
     if (!hayAlgo) {
@@ -65,22 +81,46 @@ export function PaginaBuscador() {
       setError(null);
       return;
     }
-    timer.current = setTimeout(() => {
-      setLoading(true);
-      setError(null);
-      buscarPiezas({ q, tractament, grosor, codigoPdm, codigoCliente }, config)
-        .then(({ resultados, total }) => {
-          setResultados(resultados);
-          setTotal(total);
-          setBuscado(true);
-        })
-        .catch((e) => setError(e instanceof Error ? e.message : "Error al buscar"))
-        .finally(() => setLoading(false));
-    }, 300);
+    timer.current = setTimeout(executarCerca, 300);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [q, tractament, grosor, codigoPdm, codigoCliente, hayAlgo, config]);
+  }, [hayAlgo, executarCerca]);
+
+  // Neteja el polling si el component es desmunta mentre s'està actualitzant.
+  useEffect(() => {
+    return () => {
+      if (pollIndex.current) clearInterval(pollIndex.current);
+    };
+  }, []);
+
+  const actualitzarIndex = async () => {
+    if (actualitzantIndex) return;
+    setActualitzantIndex(true);
+    try {
+      await reindexar(config);
+    } catch {
+      setActualitzantIndex(false);
+      return;
+    }
+    let haVistEnCurs = false;
+    let intents = 0;
+    pollIndex.current = setInterval(async () => {
+      intents += 1;
+      try {
+        const estat = await getIndiceEstado();
+        if (estat.indexando) haVistEnCurs = true;
+        if ((haVistEnCurs && !estat.indexando) || intents > 400) {
+          if (pollIndex.current) clearInterval(pollIndex.current);
+          pollIndex.current = null;
+          setActualitzantIndex(false);
+          executarCerca();
+        }
+      } catch {
+        /* silencio — es reintenta al proper interval */
+      }
+    }, 3000);
+  };
 
   const netejarFiltres = () => {
     setTractament("");
@@ -266,9 +306,24 @@ export function PaginaBuscador() {
                   {error}
                 </p>
               ) : buscado && resultados.length === 0 ? (
-                <p className="py-16 text-center text-[13px]" style={{ color: "var(--panel-text-5)" }}>
-                  Cap resultat per a «{q}»
-                </p>
+                <div className="flex flex-col items-center gap-3 py-16">
+                  <p className="text-[13px]" style={{ color: "var(--panel-text-5)" }}>
+                    Cap resultat per a «{q}»
+                  </p>
+                  <p className="max-w-sm text-center text-[12px]" style={{ color: "var(--panel-text-5)" }}>
+                    Si la peça és nova, potser encara no s'ha indexat — l'índex es refresca sol cada 10
+                    minuts, o pots forçar-ho ara.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={actualitzarIndex}
+                    disabled={actualitzantIndex}
+                    className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent disabled:cursor-wait disabled:opacity-60"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${actualitzantIndex ? "animate-spin" : ""}`} />
+                    {actualitzantIndex ? "Actualitzant índex... (pot trigar uns minuts)" : "Actualitzar índex"}
+                  </button>
+                </div>
               ) : (
                 <>
                   <p className="mb-4 text-[12px]" style={{ color: "var(--panel-text-5)" }}>

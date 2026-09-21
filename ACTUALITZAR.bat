@@ -12,8 +12,8 @@ if %errorlevel% neq 0 (
 )
 
 echo Aturant serveis...
-net stop OrquestadorWeb
-net stop OrquestadorAPI
+net stop WebOrquestador1076
+net stop Orquestador1076
 
 echo.
 echo Actualitzant dependencies del servidor...
@@ -28,8 +28,8 @@ call npm run build
 
 echo.
 echo Arrancant serveis...
-net start OrquestadorAPI
-net start OrquestadorWeb
+net start Orquestador1076
+net start WebOrquestador1076
 
 echo.
 echo Actualitzat correctament!

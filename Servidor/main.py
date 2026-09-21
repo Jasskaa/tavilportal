@@ -8,6 +8,7 @@ import os
 import re
 import io
 import time
+import contextlib
 import shutil
 import zipfile
 import asyncio
@@ -48,12 +49,35 @@ CARPETA_TEMPORAL    = os.path.join(CARPETA_RAIZ_1076, "_TEMP")
 # _DUPLICADOS ya no se usa: cualquier archivo con nombre repetido se anula
 # (--ANUL·LAT--) y se sustituye, nunca se aparta a una carpeta aparte.
 CARPETA_EXCELS      = r"\\SRVDADES\dades domoli\Costos\COSTOS\1076 -- TAVIL"
+
+# =====================================================================
+# ESTAT DE L'APLICACIÓ (historial, índex, PDFs de correu, logs) -- viu a
+# \\SRVDADES i NO a C:\DXF TEMPORAL (local a cada PC), perquè cada
+# comercial/dibuixant té la seva pròpia instal·lació d'aquest servidor
+# (amb el seu propi correu i login al portal) però tots han de compartir
+# el mateix historial de peces, el mateix índex de cerca i els mateixos
+# PDFs entrants -- i perquè els logs quedin tots junts en un sol lloc en
+# comptes d'escampats per cada PC. Carpeta pròpia, fora de
+# CARPETA_RAIZ_1076/PLANOLS, perquè el buscador/anul·lador no la confonguin
+# amb una carpeta de peces.
+#
+# EXCEPCIÓ deliberada: les credencials (.env) NO viuen aquí -- es queden
+# sempre locals a cada PC, mai en una carpeta de xarxa llegible per tothom.
+CARPETA_PORTAL_TAVIL = r"\\SRVDADES\dades domoli\Portal Tavil"
+CARPETA_LOGS          = os.path.join(CARPETA_PORTAL_TAVIL, "logs")
+RUTA_HISTORIAL      = os.path.join(CARPETA_PORTAL_TAVIL, "historial_piezas.json")
+RUTA_INDICE_PIEZAS  = os.path.join(CARPETA_PORTAL_TAVIL, "indice_piezas.json")
+
+# NOMÉS aquesta ruta es queda local a propòsit (no a \\SRVDADES com la
+# resta): és un handoff amb macros NATIUS de SolidWorks que corren en
+# aquest mateix PC (GuardarPieza.swp / Macrosw.swp / automatizacion.py, a
+# C:\DXF TEMPORAL\Programacio) i que tenen aquesta ruta local hardcodejada
+# -- movent només el costat Python es trencaria l'automatització de
+# SolidWorks sense poder actualitzar els macros .swp (binaris) igual.
 RUTA_TXT_INTERMEDIO = r"C:\DXF TEMPORAL\MACROS\datos_operacion.txt"
-RUTA_TEMP_EXCEL     = r"C:\DXF TEMPORAL\Automatizacion\temp\datos_pieza.txt"
+RUTA_TEMP_EXCEL     = os.path.join(CARPETA_PORTAL_TAVIL, "datos_pieza.txt")  # no s'utilitza enlloc actualment
 CARPETA_COMERCIAL   = r"\\SRVDADES\dades domoli\Comercial\Tavil"
 CARPETA_TALLER      = r"\\SRVDADES\taller\planols taller\1076"  # nuestros plànols, nombrados por codigo PDM (p.ej. 10760000005406.pdf)
-RUTA_HISTORIAL      = r"C:\DXF TEMPORAL\MACROS\historial_piezas.json"
-RUTA_INDICE_PIEZAS  = r"C:\DXF TEMPORAL\MACROS\indice_piezas.json"
 
 # Servidor de archivos permitido para rutas configurables por el usuario
 # (ver "CONFIGURACIÓN DE RUTAS POR USUARIO" más abajo) — solo se acepta
@@ -71,10 +95,16 @@ PORTAL_CONTRASENYA  = os.getenv("PORTAL_CONTRASENYA")
 OUTLOOK_REMITENTES    = ("compresmec@tavil.net", "ot@domoli.com", "jaskaranmr18@gmail.com")
 PATRON_CODIGO         = re.compile(r"\b(\d{10})\b")
 # Archivo TXT donde la macro VBA de Outlook escribe los asuntos
-RUTA_INBOX_TXT        = r"C:\DXF TEMPORAL\MACROS\inbox_tavil.txt"
-RUTA_TEMP_PDF         = r"C:\DXF TEMPORAL\MACROS\temp_pdf"
-SUMATRA_EXE           = r"C:\Users\otecnica4\AppData\Local\SumatraPDF\SumatraPDF.exe"
-IMPRESORA             = "MF750C Series(2)"
+RUTA_INBOX_TXT        = os.path.join(CARPETA_PORTAL_TAVIL, "inbox_tavil.txt")
+RUTA_TEMP_PDF         = os.path.join(CARPETA_PORTAL_TAVIL, "temp_pdf")
+# %LOCALAPPDATA% en comptes d'un usuari fixat -- perquè funcioni igual en
+# qualsevol PC/usuari on s'instal.li aquest servidor (SumatraPDF s'instal.la
+# per defecte a la carpeta LOCALAPPDATA de l'usuari que l'ha instal.lat).
+SUMATRA_EXE           = os.path.join(
+    os.environ.get("LOCALAPPDATA", r"C:\Windows\System32\config\systemprofile\AppData\Local"),
+    "SumatraPDF", "SumatraPDF.exe",
+)
+IMPRESORA             = "MF750C Series(2)"  # fallback -- normalment se sobreescriu amb la impressora triada a Ajustos
 # Tiempo de espera entre PDFs al imprimir varios seguidos — sin esto, lanzar
 # los Popen de SumatraPDF uno detrás de otro sin margen hace que el driver/
 # spooler de la impresora reciba el siguiente trabajo antes de terminar de
@@ -83,22 +113,34 @@ INTERVALO_ENTRE_IMPRESIONES = 5.0
 
 # =====================================================================
 # LOGGING — el servicio Windows no tiene consola, así que sin esto los
-# print() no se ven en ningún sitio. Queda constancia en servidor.log.
+# print() no se ven en ningún sitio. Queda constancia en servidor.log,
+# dins de CARPETA_LOGS (\\SRVDADES\...\Portal Tavil\logs).
 # =====================================================================
-_CARPETA_LOG = r"C:\DXF TEMPORAL\MACROS"
-os.makedirs(_CARPETA_LOG, exist_ok=True)
+try:
+    os.makedirs(CARPETA_LOGS, exist_ok=True)
+    _ruta_log = os.path.join(CARPETA_LOGS, "servidor.log")
+except OSError:
+    # \\SRVDADES pot trigar uns segons a estar disponible just en arrencar
+    # el PC (el servei arrenca abans que la xarxa estigui llesta) -- si
+    # encara no hi ha accés, cau a un log local temporal en comptes de fer
+    # petar tot el servei (i quedar-se sense CAP constància de per què).
+    _ruta_log = r"C:\DXF TEMPORAL\MACROS\servidor_arrencada.log"
+    os.makedirs(os.path.dirname(_ruta_log), exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
         RotatingFileHandler(
-            os.path.join(_CARPETA_LOG, "servidor.log"),
+            _ruta_log,
             maxBytes=5_000_000, backupCount=3, encoding="utf-8",
         ),
         logging.StreamHandler(),
     ],
 )
 log = logging.getLogger("orquestador")
+if os.path.dirname(_ruta_log) != CARPETA_LOGS:
+    log.warning(f"[Logging] \\\\SRVDADES no accessible en arrencar -- fent servir log local temporal a {_ruta_log}")
 
 
 # =====================================================================
@@ -156,6 +198,13 @@ _comandas_ya_vistas: set[str] = set()
 # Cola de comandas a procesar en background
 _cola_comandas: list[dict] = []  # [{comanda, pdf_correo}]
 _procesando: bool = False
+
+# Interruptor de "detectar correus en segon pla" (Ajustos > Impressora) --
+# NOMÉS afecta aquest PC/instal.lació (cada una té el seu propi correu i
+# cua). En memòria, no persisteix a disc a propòsit: si es reinicia el
+# servei, torna a l'estat per defecte (activat) en comptes de quedar-se
+# desactivat en silenci per sempre si algú s'oblida de reactivar-ho.
+_deteccio_correu_activa: bool = True
 
 # Piezas acumuladas de todas las comandas procesadas (listas para consultar)
 _piezas_listas: list[dict] = []
@@ -681,10 +730,15 @@ def _construir_indice(carpeta: str = None) -> list[dict]:
 
 
 def _guardar_indice(indice: list[dict]):
+    """Guarda la caché de l'índex -- escriptura atòmica (temporal + rename)
+    perquè ara pot haver-hi més d'un PC llegint-la des de \\SRVDADES mentre
+    un altre la regenera amb /reindexar."""
     try:
         os.makedirs(os.path.dirname(RUTA_INDICE_PIEZAS), exist_ok=True)
-        with open(RUTA_INDICE_PIEZAS, "w", encoding="utf-8") as f:
+        tmp = f"{RUTA_INDICE_PIEZAS}.tmp{os.getpid()}"
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump(indice, f, ensure_ascii=False)
+        os.replace(tmp, RUTA_INDICE_PIEZAS)
     except Exception as e:
         log.error(f"[Indice] Error guardando caché: {e}")
 
@@ -719,6 +773,18 @@ async def _reindexar_async():
         log.error(f"[Indice] Error reindexando: {e}")
     finally:
         _indexando = False
+
+
+INTERVALO_REINDEXADO = 600  # 10 minuts
+
+
+async def _reindexar_periodico():
+    """Refresca l'índex per defecte cada INTERVALO_REINDEXADO en segon pla
+    -- perquè una peça nova (Excel acabat de crear) aparegui sola al
+    cercador sense que ningú s'hagi d'acordar de prémer "Actualitzar"."""
+    while True:
+        await asyncio.sleep(INTERVALO_REINDEXADO)
+        await _reindexar_async()
 
 
 # Índices para rutas de excels DISTINTAS a la por defecto (CARPETA_EXCELS)
@@ -789,8 +855,58 @@ def _codigos_cliente_por_comanda(q: str) -> set[str]:
 
 
 # =====================================================================
-# HISTORIAL PERSISTENTE DE PIEZAS
+# HISTORIAL PERSISTENT DE PECES -- COMPARTIT entre PCs (veure RUTA_HISTORIAL)
 # =====================================================================
+# Com que ara més d'un servidor (un per PC) pot llegir/escriure el mateix
+# arxiu a \\SRVDADES alhora, calen dues proteccions que abans no feien
+# falta quan tot vivia en local a C:\DXF TEMPORAL\MACROS:
+#   1. Lock entre processos (_lock_historial) al voltant de tot cicle
+#      llegir-modificar-escriure, perquè dos PCs escrivint gairebé alhora
+#      no es "trepitgin" i cap dels dos canvis es perdi.
+#   2. Escriptura atòmica (escriu a un temporal + rename) perquè un altre
+#      PC llegint en aquell instant mai vegi l'arxiu a mig escriure.
+
+RUTA_HISTORIAL_LOCK = RUTA_HISTORIAL + ".lock"
+
+
+@contextlib.contextmanager
+def _lock_historial(timeout: float = 10.0):
+    """Lock exclusiu basat en la creació atòmica d'un arxiu sentinella
+    (O_CREAT|O_EXCL -- atòmic també entre PCs sobre SMB). Si un lock queda
+    penjat (un procés que va morir sense alliberar-lo) es considera
+    abandonat passats 30s i es trenca sol, perquè ningú es quedi bloquejat
+    per sempre."""
+    aconseguit = False
+    inici = time.monotonic()
+    while True:
+        try:
+            fd = os.open(RUTA_HISTORIAL_LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.close(fd)
+            aconseguit = True
+            break
+        except FileExistsError:
+            try:
+                if time.time() - os.path.getmtime(RUTA_HISTORIAL_LOCK) > 30:
+                    os.remove(RUTA_HISTORIAL_LOCK)
+                    continue
+            except OSError:
+                pass
+            if time.monotonic() - inici > timeout:
+                log.error("[Historial] Lock ocupat massa temps, es continua sense lock")
+                break
+            time.sleep(0.05)
+        except OSError as e:
+            log.error(f"[Historial] Error creant el lock: {e}")
+            break
+    try:
+        yield
+    finally:
+        if aconseguit:
+            try:
+                os.remove(RUTA_HISTORIAL_LOCK)
+            except OSError:
+                pass
+
 
 def cargar_historial() -> list[dict]:
     """Carga el historial desde disco."""
@@ -804,11 +920,15 @@ def cargar_historial() -> list[dict]:
 
 
 def guardar_historial(historial: list[dict]):
-    """Guarda el historial en disco."""
+    """Guarda el historial en disco -- escriptura atòmica (temporal +
+    os.replace) perquè un altre PC llegint mai vegi un arxiu a mitges."""
     try:
-        os.makedirs(os.path.dirname(RUTA_HISTORIAL), exist_ok=True)
-        with open(RUTA_HISTORIAL, "w", encoding="utf-8") as f:
+        carpeta = os.path.dirname(RUTA_HISTORIAL)
+        os.makedirs(carpeta, exist_ok=True)
+        tmp = f"{RUTA_HISTORIAL}.tmp{os.getpid()}"
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump(historial, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, RUTA_HISTORIAL)
     except Exception as e:
         log.error(f"[Historial] Error guardando: {e}")
 
@@ -820,25 +940,26 @@ def añadir_piezas_al_historial(piezas: list):
     descarga), así que no hace falta — y sería incorrecto — asociar todas
     las piezas de un lote a una única comanda pasada por parámetro.
     """
-    historial = cargar_historial()
     ahora = datetime.utcnow().isoformat()
     añadidas = 0
-    for pieza in piezas:
-        p = pieza if isinstance(pieza, dict) else pieza.dict()
-        comanda = p.get("comanda", "")
-        existe = any(
-            h["file"] == p["file"] and h["comanda"] == comanda
-            for h in historial
-        )
-        if not existe:
-            historial.append({
-                **p,
-                "estado": "pendiente",  # pendiente | ok
-                "fecha": ahora,
-                "id": f"{comanda}_{p['file']}",
-            })
-            añadidas += 1
-    guardar_historial(historial)
+    with _lock_historial():
+        historial = cargar_historial()
+        for pieza in piezas:
+            p = pieza if isinstance(pieza, dict) else pieza.dict()
+            comanda = p.get("comanda", "")
+            existe = any(
+                h["file"] == p["file"] and h["comanda"] == comanda
+                for h in historial
+            )
+            if not existe:
+                historial.append({
+                    **p,
+                    "estado": "pendiente",  # pendiente | ok
+                    "fecha": ahora,
+                    "id": f"{comanda}_{p['file']}",
+                })
+                añadidas += 1
+        guardar_historial(historial)
     log.info(f"[Historial] {añadidas} pieza(s) nuevas añadidas al historial")
 
 
@@ -851,29 +972,32 @@ def get_historial():
 @app.patch("/historial/{id_pieza}")
 def actualizar_estado_pieza(id_pieza: str, body: dict):
     """Marca una pieza como ok o pendiente."""
-    historial = cargar_historial()
-    for pieza in historial:
-        if pieza.get("id") == id_pieza:
-            pieza["estado"] = body.get("estado", pieza["estado"])
-            guardar_historial(historial)
-            return {"ok": True, "pieza": pieza}
+    with _lock_historial():
+        historial = cargar_historial()
+        for pieza in historial:
+            if pieza.get("id") == id_pieza:
+                pieza["estado"] = body.get("estado", pieza["estado"])
+                guardar_historial(historial)
+                return {"ok": True, "pieza": pieza}
     raise HTTPException(404, f"Pieza {id_pieza} no encontrada")
 
 
 @app.delete("/historial")
 def limpiar_historial_ok():
     """Elimina del historial todas las piezas marcadas como ok."""
-    historial = cargar_historial()
-    antes = len(historial)
-    historial = [p for p in historial if p.get("estado") != "ok"]
-    guardar_historial(historial)
+    with _lock_historial():
+        historial = cargar_historial()
+        antes = len(historial)
+        historial = [p for p in historial if p.get("estado") != "ok"]
+        guardar_historial(historial)
     return {"ok": True, "eliminadas": antes - len(historial)}
 
 
 @app.delete("/historial/todo")
 def limpiar_historial_todo():
     """Elimina todo el historial."""
-    guardar_historial([])
+    with _lock_historial():
+        guardar_historial([])
     return {"ok": True}
 
 @app.get("/health")
@@ -1114,7 +1238,7 @@ async def _ejecutar_auto_descarga(comanda: str, pdf_correo: str, accion: str = "
 
     # Si no viene PDF del correo, buscar el más reciente en temp_pdf
     if not pdf_correo or not os.path.isfile(pdf_correo):
-        ruta_temp_pdf = r"C:\DXF TEMPORAL\MACROS\temp_pdf"
+        ruta_temp_pdf = RUTA_TEMP_PDF
         if os.path.exists(ruta_temp_pdf):
             pdfs_temp = [
                 os.path.join(ruta_temp_pdf, f)
@@ -1560,10 +1684,32 @@ class AutoDescargarRequest(BaseModel):
     accion: Optional[str] = "imprimir"
 
 
+@app.get("/config/deteccio-correu")
+def get_deteccio_correu():
+    """Estat del interruptor "Detectar correus en segon pla" (Ajustos)."""
+    return {"activa": _deteccio_correu_activa}
+
+
+class DeteccioCorreuRequest(BaseModel):
+    activa: bool
+
+
+@app.post("/config/deteccio-correu")
+def set_deteccio_correu(req: DeteccioCorreuRequest):
+    """Activa/desactiva la detecció de correu en segon pla d'aquest PC."""
+    global _deteccio_correu_activa
+    _deteccio_correu_activa = req.activa
+    log.info(f"[Config] Detecció de correu en segon pla: {'activada' if req.activa else 'desactivada'}")
+    return {"ok": True, "activa": _deteccio_correu_activa}
+
+
 @app.post("/auto-descargar")
 async def auto_descargar(req: AutoDescargarRequest):
     """Añade la comanda a la cola y arranca el procesador si no está corriendo."""
     global _cola_comandas, _procesando
+
+    if not _deteccio_correu_activa:
+        raise HTTPException(409, "La detecció de correu en segon pla està desactivada a Ajustos.")
 
     # Normalizar ruta del PDF (el VBA manda \\ escapado)
     pdf_correo = (req.pdf_correo or "").replace("\\\\", "\\").strip()
@@ -1612,6 +1758,7 @@ def cola_estado():
         "comandas_listas": _comandas_listas,
         "hay_nuevas": len(_piezas_listas) > 0,
         "errores_recientes": _errores_recientes,
+        "deteccio_activa": _deteccio_correu_activa,
     }
 
 
@@ -1927,9 +2074,9 @@ def info_pieza(codigo: str):
 def archivo_planol_cliente(codigo_cliente: str, ruta: str = ""):
     """Devuelve el plànol del cliente (PDF/DXF) como FileResponse — el
     navegador del USUARIO lo descarga/abre directamente. No usar
-    os.startfile() aquí: el servidor corre como servicio en 192.168.0.166,
-    así que os.startfile() solo abriría el archivo ahí, no en el PC del
-    usuario que pulsó el botón.
+    os.startfile() aquí: el servidor corre como servicio Windows en el PC
+    que lo aloja, así que os.startfile() solo abriría el archivo ahí, no en
+    el PC del usuario que pulsó el botón.
     Busca en la raíz de fabricació (config del usuario, o CARPETA_RAIZ_1076
     por defecto) y, si aún no se ha movido ahí, en _TEMP (siempre la de
     siempre — es una carpeta interna del proceso de descarga, no depende
@@ -2095,6 +2242,15 @@ async def reindexar(ruta_excels: str = ""):
             return {"ok": True, "estado": "ya_en_curso", "total": len(_indices_alt.get(carpeta, []))}
         asyncio.create_task(_construir_indice_alt_async(carpeta))
         return {"ok": True, "estado": "iniciado", "total_actual": len(_indices_alt.get(carpeta, []))}
+
+
+@app.get("/indice-estado")
+def indice_estado():
+    """Estat NOMÉS-lectura de l'índex per defecte (no en dispara cap
+    reindexat) -- el fa servir el frontend per fer polling després de
+    prémer "Actualitzar índex" al cercador i saber quan el reindexat en
+    curs (/reindexar) ha acabat, per poder refer la cerca automàticament."""
+    return {"indexando": _indexando, "total": len(_INDICE_PIEZAS), "ultimo_indexado": _ultimo_indexado}
 
 
 # =====================================================================
@@ -3003,3 +3159,4 @@ async def startup():
     _INDICE_PIEZAS = _cargar_indice_cache()
     log.info(f"[Indice] Cargado desde caché: {len(_INDICE_PIEZAS)} piezas")
     asyncio.create_task(_reindexar_async())  # refresca en segundo plano sin bloquear el arranque
+    asyncio.create_task(_reindexar_periodico())  # i despres, cada 10 min
