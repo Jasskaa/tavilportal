@@ -85,6 +85,30 @@ export async function setDeteccioCorreu(activa: boolean): Promise<{ ok: boolean;
   return res.json();
 }
 
+/** "Quan es processa una comanda" (Ajustos > Impressora) -- imprimir o
+ * descarregar. Viu al servidor (no al navegador) perquè el correu real
+ * d'Outlook truca a /auto-descargar directament, sense cap navegador de
+ * per mig -- si només visqués al localStorage, el flux automàtic real
+ * mai el veuria. "Entorn de proves" fa servir aquesta mateixa font. */
+export async function getAccioDocuments(): Promise<{ accio: "imprimir" | "descargar" }> {
+  const res = await fetch(`${BASE}/config/accio-documents`, { signal: AbortSignal.timeout(5000) });
+  if (!res.ok) throw new Error(await extraerMensajeError(res));
+  return res.json();
+}
+
+export async function setAccioDocuments(
+  accio: "imprimir" | "descargar",
+): Promise<{ ok: boolean; accio: "imprimir" | "descargar" }> {
+  const res = await fetch(`${BASE}/config/accio-documents`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accio }),
+    signal: AbortSignal.timeout(5000),
+  });
+  if (!res.ok) throw new Error(await extraerMensajeError(res));
+  return res.json();
+}
+
 export async function limpiarPiezasListas(): Promise<{ ok: boolean }> {
   const res = await fetch(`${BASE}/limpiar-piezas-listas`, {
     method: "POST",
@@ -640,17 +664,18 @@ export async function subirPdfCorreoTest(file: File): Promise<{ ok: boolean; rut
   return res.json();
 }
 
+/** No envia `accion` a propòsit — el servidor sempre decideix segons
+ * _accio_documents_defecte (configurat a Ajustos), exactament igual que ho
+ * fa amb un correu real. Així "Entorn de proves" prova el mateix camí de
+ * veritat, sense una segona font de veritat al navegador. */
 export async function simularAutoDescargar(
   comanda: string,
   pdfCorreo: string,
-  accion: "imprimir" | "descarregar" = "imprimir",
 ): Promise<{ ok: boolean; msg: string; cola: number }> {
   const res = await fetch(`${BASE}/auto-descargar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    // El servidor solo distingue "imprimir"/"descargar" (castellano) — se
-    // traduce aquí para no filtrar la palabra catalana al contrato HTTP.
-    body: JSON.stringify({ comanda, pdf_correo: pdfCorreo, accion: accion === "descarregar" ? "descargar" : "imprimir" }),
+    body: JSON.stringify({ comanda, pdf_correo: pdfCorreo }),
   });
   if (!res.ok) throw new Error(await extraerMensajeError(res));
   return res.json();

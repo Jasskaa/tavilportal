@@ -206,6 +206,16 @@ _procesando: bool = False
 # desactivat en silenci per sempre si algú s'oblida de reactivar-ho.
 _deteccio_correu_activa: bool = True
 
+# "Quan es processa una comanda" (Ajustos > Impressora): imprimir o
+# descarregar. HA DE viure al servidor (no al navegador com abans) perquè
+# el correu real d'Outlook truca a /auto-descargar directament, sense cap
+# navegador de per mig -- si només es guardés al localStorage d'un
+# navegador, el flux automàtic real mai el veuria i sempre acabaria
+# imprimint (el valor per defecte del camp "accion" al JSON que envia la
+# macro, que no l'inclou). "Entorn de proves" també fa servir aquest mateix
+# valor, per no tenir dues fonts de veritat diferents.
+_accio_documents_defecte: str = "imprimir"  # "imprimir" | "descargar"
+
 # Piezas acumuladas de todas las comandas procesadas (listas para consultar)
 _piezas_listas: list[dict] = []
 _comandas_listas: list[str] = []
@@ -1678,10 +1688,10 @@ def _hacer_descarga(req: DescargaRequest) -> DescargaResponse:
 class AutoDescargarRequest(BaseModel):
     comanda: str
     pdf_correo: Optional[str] = ""  # ruta local al PDF guardado por Outlook
-    # "imprimir" (por defecto — así llama la macro real, que no manda este
-    # campo) | "descargar" (toggle de Ajustos, ver _descargas_pendientes).
-    # Cualquier valor que no sea "descargar" se trata como "imprimir".
-    accion: Optional[str] = "imprimir"
+    # "imprimir" | "descargar" — la macro real de Outlook NUNCA manda este
+    # campo (no sabe nada del toggle de Ajustos), así que si no viene (o no
+    # es un valor válido) se usa _accio_documents_defecte (config. servidor).
+    accion: Optional[str] = None
 
 
 @app.get("/config/deteccio-correu")
@@ -1703,6 +1713,27 @@ def set_deteccio_correu(req: DeteccioCorreuRequest):
     return {"ok": True, "activa": _deteccio_correu_activa}
 
 
+@app.get("/config/accio-documents")
+def get_accio_documents():
+    """Estat de "Quan es processa una comanda" (Ajustos > Impressora)."""
+    return {"accio": _accio_documents_defecte}
+
+
+class AccioDocumentsRequest(BaseModel):
+    accio: str  # "imprimir" | "descargar"
+
+
+@app.post("/config/accio-documents")
+def set_accio_documents(req: AccioDocumentsRequest):
+    """Canvia què fer amb els documents quan es processa una comanda pel
+    flux automàtic (correu real i "Entorn de proves") -- imprimir-los o
+    deixar-los preparats per descarregar."""
+    global _accio_documents_defecte
+    _accio_documents_defecte = "descargar" if req.accio == "descargar" else "imprimir"
+    log.info(f"[Config] Quan es processa una comanda: {_accio_documents_defecte}")
+    return {"ok": True, "accio": _accio_documents_defecte}
+
+
 @app.post("/auto-descargar")
 async def auto_descargar(req: AutoDescargarRequest):
     """Añade la comanda a la cola y arranca el procesador si no está corriendo."""
@@ -1713,7 +1744,11 @@ async def auto_descargar(req: AutoDescargarRequest):
 
     # Normalizar ruta del PDF (el VBA manda \\ escapado)
     pdf_correo = (req.pdf_correo or "").replace("\\\\", "\\").strip()
-    accion = "descargar" if req.accion == "descargar" else "imprimir"
+    # El correu real d'Outlook mai envia "accion" (no en sap res del
+    # navegador) -- per això, si no ve un valor explícit vàlid, es fa
+    # servir SEMPRE la configuració del servidor (Ajustos), mai un
+    # "imprimir" fix com abans.
+    accion = req.accion if req.accion in ("imprimir", "descargar") else _accio_documents_defecte
     log.info(f"[Cola] PDF correo recibido: '{pdf_correo}' — existe: {os.path.isfile(pdf_correo) if pdf_correo else 'N/A'} — accion: {accion}")
 
     # Evitar duplicados en cola
@@ -3023,15 +3058,25 @@ def comparar_planols(pdf_original_path: str, pdf_nuevo_path: str, codigo_pieza: 
         if hay_diff_3d:
             diferencias.append({"tipo": "vista_3d", "descripcio": "Canvis detectats a la vista 3D/isomètrica"})
 
-        log_sse("COMPARE", "Generant PDF amb diferències marcades...")
-        _generar_pdf_diferencias(pdf_nuevo_path, diferencias, zona_3d, hay_diff_3d, ruta_salida)
-        log_sse("FILE", f"PDF de diferències guardat: {os.path.basename(ruta_salida)}")
+        # Sense diferències reals: NO es genera el PDF de comparació -- si
+        # es generés igualment (com abans), acabava imprimint-se/baixant-se
+        # AL COSTAT del plànol nou, duplicant un document que no aporta res
+        # (el contingut és idèntic). Amb el plànol nou (ja col.locat com a
+        # vigent) n'hi ha prou.
+        pdf_resultado = ""
+        if diferencias:
+            log_sse("COMPARE", "Generant PDF amb diferències marcades...")
+            _generar_pdf_diferencias(pdf_nuevo_path, diferencias, zona_3d, hay_diff_3d, ruta_salida)
+            log_sse("FILE", f"PDF de diferències guardat: {os.path.basename(ruta_salida)}")
+            pdf_resultado = ruta_salida
+        else:
+            log_sse("COMPARE", "Sense diferències reals -- no es genera PDF de comparació")
 
         return {
             "tiene_diferencias": len(diferencias) > 0,
             "num_diferencias": len(diferencias),
             "diferencias": diferencias,
-            "pdf_resultado": ruta_salida,
+            "pdf_resultado": pdf_resultado,
         }
     except Exception as e:
         log.error(f"[Comparar] Error comparando plànols de {codigo_pieza}: {e}")

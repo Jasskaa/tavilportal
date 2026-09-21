@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, Trash2, ChevronDown, Check, Copy } from "lucide-react";
 import { getHistorial, marcarPiezaOk, limpiarHistorialOk, type PiezaHistorial } from "@/lib/api";
+import { copiarAlPortaretes } from "@/lib/utils";
 
 function formatarData(iso: string): string {
   try {
@@ -22,12 +23,10 @@ function CampCopiable({ label, value }: CampCopiableProps) {
 
   const copiar = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await navigator.clipboard.writeText(value);
+    const ok = await copiarAlPortaretes(value);
+    if (ok) {
       setCopiat(true);
       setTimeout(() => setCopiat(false), 1500);
-    } catch {
-      /* silencio */
     }
   };
 

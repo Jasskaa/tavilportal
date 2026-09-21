@@ -79,6 +79,10 @@ Nomes cal en UN PC: el que tingui Outlook obert i rebi els correus de Tavil
 2. Al panell esquerre, doble clic a "ThisOutlookSession"
 3. Esborra el que hi hagi i enganxa tot el contingut de
    Servidor\macro_outlook.vba
+   IMPORTANT: si mai veus linies que comencen per "Attribute VB_..." a dalt
+   de l'arxiu, NO les enganxis -- donen "Error de sintaxi" al desar (nomes
+   son valides important un modul com a fitxer, no enganxant-lo al panell
+   de codi). El fitxer del repositori ja no en porta.
 4. Ctrl+S per desar
 5. Si Outlook et demana pujar el nivell de seguretat de macros
    (Fitxer -> Opcions -> Centre de confiança -> Configuracio del Centre de

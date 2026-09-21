@@ -14,6 +14,8 @@ import {
   setImpresoraPreferida,
   getDeteccioCorreu,
   setDeteccioCorreu,
+  getAccioDocuments,
+  setAccioDocuments,
 } from "@/lib/api";
 import { obtenirTemaGuardat, aplicarTema, type Tema } from "@/lib/tema";
 import {
@@ -68,6 +70,8 @@ export function BotonAjustos() {
   const [rutes, setRutes] = useState<UserConfig>(USER_CONFIG_BUIDA);
   const [deteccioCorreu, setDeteccioCorreuState] = useState(true);
   const [errorDeteccio, setErrorDeteccio] = useState<string | null>(null);
+  const [accioDocuments, setAccioDocumentsState] = useState<"imprimir" | "descargar">("imprimir");
+  const [errorAccio, setErrorAccio] = useState<string | null>(null);
 
   useEffect(() => {
     if (!obert) return;
@@ -86,6 +90,11 @@ export function BotonAjustos() {
     getDeteccioCorreu()
       .then(({ activa }) => setDeteccioCorreuState(activa))
       .catch((e) => setErrorDeteccio(e instanceof Error ? e.message : "Error carregant l'estat"));
+
+    setErrorAccio(null);
+    getAccioDocuments()
+      .then(({ accio }) => setAccioDocumentsState(accio))
+      .catch((e) => setErrorAccio(e instanceof Error ? e.message : "Error carregant l'estat"));
   }, [obert]);
 
   const guardar = async () => {
@@ -93,8 +102,9 @@ export function BotonAjustos() {
     guardarUserConfig(rutes);
     try {
       await setDeteccioCorreu(deteccioCorreu);
+      await setAccioDocuments(accioDocuments);
     } catch {
-      /* silencio — l'interruptor ja reflecteix el que l'usuari va triar */
+      /* silencio — els controls ja reflecteixen el que l'usuari va triar */
     }
     setGuardat(true);
     setTimeout(() => setGuardat(false), 2000);
@@ -179,9 +189,9 @@ export function BotonAjustos() {
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setRutes((r) => ({ ...r, accioDocuments: "imprimir" }))}
+                  onClick={() => setAccioDocumentsState("imprimir")}
                   className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    rutes.accioDocuments === "imprimir"
+                    accioDocuments === "imprimir"
                       ? "border-primary bg-accent text-primary"
                       : "border-border text-muted-foreground hover:bg-accent hover:text-secondary-foreground"
                   }`}
@@ -191,9 +201,9 @@ export function BotonAjustos() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setRutes((r) => ({ ...r, accioDocuments: "descarregar" }))}
+                  onClick={() => setAccioDocumentsState("descargar")}
                   className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                    rutes.accioDocuments === "descarregar"
+                    accioDocuments === "descargar"
                       ? "border-primary bg-accent text-primary"
                       : "border-border text-muted-foreground hover:bg-accent hover:text-secondary-foreground"
                   }`}
@@ -206,6 +216,7 @@ export function BotonAjustos() {
                 Només afecta el flux automàtic (correu) i "Entorn de proves" — la descàrrega manual
                 ja té els seus propis botons "Imprimir tot"/"Descarregar tot" per comanda.
               </p>
+              {errorAccio && <p className="text-[11px] text-destructive">{errorAccio}</p>}
             </div>
 
             <div className="flex items-start justify-between gap-4 rounded-lg border border-border bg-card px-3 py-3">

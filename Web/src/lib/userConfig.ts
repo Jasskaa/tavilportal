@@ -16,12 +16,11 @@ export interface UserConfig {
   rutaPlanolsTaller: string;
   rutaExcels: string;
   rutaComercial: string;
-  /** Què fer amb els documents quan es processa una comanda pel flux
-   * automàtic (correu) — o des de "Entorn de proves": imprimir-los amb
-   * la impressora del servidor, o deixar-los preparats com a ZIP perquè
-   * el navegador els descarregui. No afecta la descàrrega manual, que ja
-   * té els seus propis botons "Imprimir tot"/"Descarregar tot" per targeta. */
-  accioDocuments: "imprimir" | "descarregar";
+  // "Quan es processa una comanda" (imprimir/descarregar) i "detectar
+  // correus en segon pla" ja NO viuen aquí -- són configuració del
+  // SERVIDOR (veure getAccioDocuments/getDeteccioCorreu a api.ts), perquè
+  // el correu real d'Outlook truca directament al servidor sense passar
+  // mai per cap navegador, i localStorage és només per-navegador.
   /** "Entorn de proves" (simular correu sense esperar-ne un de real) és una
    * eina de suport/depuració — amagada per defecte perquè no molesti al dia
    * a dia; s'activa des d'Ajustos > Avançat quan cal fer una prova. */
@@ -36,7 +35,6 @@ export const USER_CONFIG_BUIDA: UserConfig = {
   rutaPlanolsTaller: "",
   rutaExcels: "",
   rutaComercial: "",
-  accioDocuments: "imprimir",
   mostrarEntornProves: false,
 };
 
@@ -45,7 +43,7 @@ export const USER_CONFIG_BUIDA: UserConfig = {
  * no escriu res, no s'envia cap paràmetre i el servidor ja fa servir
  * aquests mateixos valors. Han d'estar sincronitzades amb main.py:
  * CARPETA_RAIZ_1076 / CARPETA_TALLER / CARPETA_EXCELS / CARPETA_COMERCIAL. */
-export const RUTES_PER_DEFECTE: Omit<UserConfig, "accioDocuments" | "mostrarEntornProves"> = {
+export const RUTES_PER_DEFECTE: Omit<UserConfig, "mostrarEntornProves"> = {
   rutaPlanolsFabricacio: String.raw`\\SRVDADES\dades domoli\Fabricacio\PLANOLS\1076`,
   rutaPlanolsTaller: String.raw`\\SRVDADES\taller\planols taller\1076`,
   rutaExcels: String.raw`\\SRVDADES\dades domoli\Costos\COSTOS\1076 -- TAVIL`,

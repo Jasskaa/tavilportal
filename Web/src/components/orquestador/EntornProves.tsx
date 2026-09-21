@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FlaskConical, Loader2, Printer, Download } from "lucide-react";
 import {
   subirPdfCorreoTest,
@@ -6,10 +6,10 @@ import {
   descargarPendiente,
   getColaEstado,
   limpiarPiezasListas,
+  getAccioDocuments,
   type LogEntry,
   type PiezaResult,
 } from "@/lib/api";
-import { useUserConfig } from "@/hooks/use-user-config";
 import { PanelLog } from "./PanelLog";
 import { GrupoComanda } from "./GrupoComanda";
 
@@ -17,17 +17,28 @@ const PATRON_CODIGO = /\b(\d{10})\b/;
 
 /** "Entorn de proves": simula la recepció d'un correu (macro VBA) des del
  * navegador — sense necessitat d'enviar un correu real — per poder veure
- * pas a pas al panell de log tot el que fa el servidor en processar-lo. */
+ * pas a pas al panell de log tot el que fa el servidor en processar-lo.
+ * NO envia "accion" al simular — el servidor sempre decideix segons la
+ * configuració d'Ajustos (_accio_documents_defecte), exactament igual que
+ * amb un correu real, així es prova el mateix camí de veritat. */
 export function EntornProves() {
-  const { config } = useUserConfig();
   const [assumpte, setAssumpte] = useState("");
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [errorValidacio, setErrorValidacio] = useState<string | null>(null);
+  const [accioActual, setAccioActual] = useState<"imprimir" | "descargar">("imprimir");
 
   const [piezasResultado, setPiezasResultado] = useState<PiezaResult[] | null>(null);
   const comandaEsperandoRef = useRef<string | null>(null);
-  const accioEsperandaRef = useRef<"imprimir" | "descarregar">("imprimir");
+  const accioEsperandaRef = useRef<"imprimir" | "descargar">("imprimir");
+
+  useEffect(() => {
+    getAccioDocuments()
+      .then(({ accio }) => setAccioActual(accio))
+      .catch(() => {
+        /* silencio — es queda amb "imprimir" per defecte */
+      });
+  }, []);
 
   const onLogEntry = useCallback(async (entry: LogEntry) => {
     const comanda = comandaEsperandoRef.current;
@@ -39,7 +50,7 @@ export function EntornProves() {
       return;
     }
     comandaEsperandoRef.current = null;
-    if (accioEsperandaRef.current === "descarregar") {
+    if (accioEsperandaRef.current === "descargar") {
       try {
         await descargarPendiente(comanda);
       } catch {
@@ -69,14 +80,20 @@ export function EntornProves() {
     setEnviando(true);
     setPiezasResultado(null);
     comandaEsperandoRef.current = comanda;
-    accioEsperandaRef.current = config.accioDocuments;
     try {
+      // Refresca l'accio just abans d'enviar (per si s'ha canviat a Ajustos
+      // des que es va carregar aquesta pàgina) — cal saber-la per decidir
+      // si cal anar a buscar el ZIP quan acabi de processar-se.
+      const { accio } = await getAccioDocuments();
+      accioEsperandaRef.current = accio;
+      setAccioActual(accio);
+
       let pdfCorreo = "";
       if (pdfFile) {
         const { ruta } = await subirPdfCorreoTest(pdfFile);
         pdfCorreo = ruta;
       }
-      await simularAutoDescargar(comanda, pdfCorreo, config.accioDocuments);
+      await simularAutoDescargar(comanda, pdfCorreo);
     } catch (e) {
       setErrorValidacio(e instanceof Error ? e.message : "Error simulant la recepció del correu");
       comandaEsperandoRef.current = null;
@@ -139,15 +156,8 @@ export function EntornProves() {
       </div>
 
       <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-        {config.accioDocuments === "descarregar" ? (
-          <Download className="h-3 w-3" />
-        ) : (
-          <Printer className="h-3 w-3" />
-        )}
-        Mode actual:{" "}
-        {config.accioDocuments === "descarregar"
-          ? "descarregar a l'ordinador"
-          : "imprimir documents"}{" "}
+        {accioActual === "descargar" ? <Download className="h-3 w-3" /> : <Printer className="h-3 w-3" />}
+        Mode actual: {accioActual === "descargar" ? "descarregar a l'ordinador" : "imprimir documents"}{" "}
         <span className="text-muted-foreground/60">(canvia-ho a Ajustos)</span>
       </p>
 

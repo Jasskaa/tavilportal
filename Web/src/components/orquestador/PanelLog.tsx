@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Trash2, Copy, Check } from "lucide-react";
 import { urlLogStream, type LogEntry } from "@/lib/api";
+import { copiarAlPortaretes } from "@/lib/utils";
 
 const COLORES: Record<LogEntry["tipo"], string> = {
   INFO: "#e2e4e8",
@@ -66,12 +67,10 @@ export function PanelLog({ onEntry }: Props) {
 
   const copiar = async () => {
     const texto = lineas.map((l) => `[${l.ts}] [${l.tipo}] ${l.msg}`).join("\n");
-    try {
-      await navigator.clipboard.writeText(texto);
+    const ok = await copiarAlPortaretes(texto);
+    if (ok) {
       setCopiat(true);
       setTimeout(() => setCopiat(false), 2000);
-    } catch {
-      /* silencio */
     }
   };
 
