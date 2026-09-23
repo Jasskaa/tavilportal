@@ -38,3 +38,30 @@ export async function copiarAlPortaretes(text: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Estat unificat d'una peça descarregada, combinant `status` (nova/duplicat
+ * per nom) i `tiene_diferencias` (comparador de plànols) en UNA sola
+ * classificació de 3 valors — es fa servir igual a Descàrrega i a
+ * l'Historial, perquè és la mateixa informació mostrada en dos llocs:
+ *   - "nova": peça mai vista abans.
+ *   - "versio_nova": ja existia amb aquest nom/revisió, però el comparador
+ *     ha trobat diferències reals al plànol (canvi de veritat).
+ *   - "sense_canvis": ja existia i el contingut és idèntic (o no hi havia
+ *     res amb què comparar) — no cal fer-hi res de nou.
+ */
+export type EstatPeca = "nova" | "versio_nova" | "sense_canvis";
+
+export function calcularEstatPeca(pieza: {
+  status: string;
+  tiene_diferencias?: boolean | null;
+}): EstatPeca {
+  if (pieza.status !== "duplicado") return "nova";
+  return pieza.tiene_diferencias === true ? "versio_nova" : "sense_canvis";
+}
+
+export const ETIQUETA_ESTAT_PECA: Record<EstatPeca, string> = {
+  nova: "Nova",
+  versio_nova: "Versió nova",
+  sense_canvis: "Ja existia",
+};

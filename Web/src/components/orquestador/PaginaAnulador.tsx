@@ -192,7 +192,7 @@ function ColumnaAnulador<T extends { estado: AnuladorEstado }>({
 
 export function PaginaAnulador() {
   return (
-    <div className="mx-auto w-full max-w-[1600px] px-8 py-8">
+    <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-8 sm:py-8">
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
         <ColumnaAnulador<AnuladorItemPlanol>
           titulo="Plànols"

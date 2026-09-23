@@ -143,8 +143,8 @@ export function PaginaBuscador() {
         transition={{ duration: DUR_HERO, ease: EASE_HERO }}
         className={
           hayAlgo
-            ? "z-20 flex w-full flex-col border-b border-[var(--panel-border-0)] bg-[var(--panel-bg-0)] px-6 py-3"
-            : "z-20 flex w-full flex-1 flex-col items-center justify-center px-6"
+            ? "z-20 flex w-full flex-col border-b border-[var(--panel-border-0)] bg-[var(--panel-bg-0)] px-4 py-3 sm:px-6"
+            : "z-20 flex w-full flex-1 flex-col items-center justify-center px-4 sm:px-6"
         }
       >
         <motion.div
@@ -298,7 +298,7 @@ export function PaginaBuscador() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ delay: 0.1, duration: 0.25 }}
-            className="min-h-0 flex-1 overflow-y-auto px-10 py-6"
+            className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-10"
           >
             <div className="mx-auto w-full max-w-[1400px]">
               {loading && resultados.length === 0 ? null : error ? (

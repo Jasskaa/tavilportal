@@ -136,13 +136,13 @@ export function BotonAjustos() {
           <DialogTitle>Ajustos</DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center gap-1 border-b border-border">
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-border">
           {PESTANYES.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => setPestanya(p.id)}
-              className={`relative flex items-center gap-1.5 px-3 pb-2.5 text-sm font-medium transition-colors ${
+              className={`relative flex shrink-0 items-center gap-1.5 px-2.5 pb-2.5 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
                 pestanya === p.id
                   ? "text-primary"
                   : "text-muted-foreground hover:text-secondary-foreground"
@@ -186,7 +186,7 @@ export function BotonAjustos() {
 
             <div className="space-y-2">
               <span className="text-sm text-muted-foreground">Quan es processa una comanda</span>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => setAccioDocumentsState("imprimir")}

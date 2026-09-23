@@ -75,7 +75,7 @@ export function ColaBadge({ onVerPeces }: Props) {
       </button>
 
       {obert && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-80 rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-card-hover)]">
+        <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-border bg-card p-4 shadow-[var(--shadow-card-hover)]">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-foreground">Monitorització de correu</span>
             <span

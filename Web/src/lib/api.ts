@@ -346,6 +346,20 @@ export async function limpiarHistorialOk(): Promise<void> {
   }
 }
 
+/** Torna a buscar l'Excel de les peces del historial que encara no en
+ * tenien (algú l'ha pogut crear després de la descàrrega) i, si en troba,
+ * omple desc/tract/gruix/refCliente. El servidor ja ho fa sol cada 5 min
+ * en segon pla — això permet disparar-ho a l'instant des del botó
+ * "Actualitzar". */
+export async function enriquirHistorial(): Promise<{ ok: boolean; actualizadas: number }> {
+  const res = await fetch(`${BASE}/historial/enriquir`, {
+    method: "POST",
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) throw new Error(await extraerMensajeError(res));
+  return res.json();
+}
+
 // =====================================================================
 // BUSCADOR DE PIEZAS — índice construido a partir de todos los Excels de
 // costos (no del historial de descargas: cualquier pieza que tenga Excel,

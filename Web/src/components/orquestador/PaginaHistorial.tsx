@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, Trash2, ChevronDown, Check, Copy } from "lucide-react";
-import { getHistorial, marcarPiezaOk, limpiarHistorialOk, type PiezaHistorial } from "@/lib/api";
-import { copiarAlPortaretes } from "@/lib/utils";
+import { RefreshCw, Trash2, ChevronDown, Check, Copy, TriangleAlert } from "lucide-react";
+import {
+  getHistorial,
+  marcarPiezaOk,
+  limpiarHistorialOk,
+  enriquirHistorial,
+  type PiezaHistorial,
+} from "@/lib/api";
+import { copiarAlPortaretes, calcularEstatPeca, ETIQUETA_ESTAT_PECA } from "@/lib/utils";
+
+const INTERVAL_ENRIQUIMENT_MS = 5 * 60 * 1000; // 5 minuts
 
 function formatarData(iso: string): string {
   try {
@@ -61,6 +69,7 @@ interface FilaProps {
 function FilaHistorial({ pieza, onToggle, completada }: FilaProps) {
   const [detallObert, setDetallObert] = useState(false);
   const codigo = pieza.ref || pieza.file;
+  const estat = calcularEstatPeca(pieza);
 
   return (
     <li
@@ -97,13 +106,21 @@ function FilaHistorial({ pieza, onToggle, completada }: FilaProps) {
             </span>
             <span
               className={`badge-pill ${
-                pieza.status === "duplicado"
+                estat === "versio_nova"
                   ? "bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)]"
-                  : "bg-[var(--badge-info-bg)] text-[var(--badge-info-text)]"
+                  : estat === "nova"
+                    ? "bg-[var(--badge-info-bg)] text-[var(--badge-info-text)]"
+                    : "bg-[var(--badge-neutral-bg)] text-[var(--badge-neutral-text)]"
               }`}
             >
-              {pieza.status === "duplicado" ? "Duplicat" : "Nova"}
+              {estat === "versio_nova" && <TriangleAlert className="h-3 w-3" />}
+              {ETIQUETA_ESTAT_PECA[estat]}
             </span>
+            {!pieza.tiene_excel && (
+              <span className="badge-pill bg-[var(--badge-warning-bg)] text-[var(--badge-warning-text)]">
+                Sense Excel encara
+              </span>
+            )}
           </div>
           <p className="mt-0.5 truncate text-xs text-muted-foreground">{pieza.desc || pieza.file}</p>
         </button>
@@ -142,8 +159,29 @@ export function PaginaHistorial() {
       .finally(() => setCargando(false));
   }, []);
 
+  /** Botó "Actualitzar": primer torna a buscar Excels per a les peces que
+   * encara no en tenien (algú pot haver-lo creat des de l'última vegada) i
+   * després recarrega la llista — així es veu de seguida si s'ha omplert
+   * alguna cosa nova. */
+  const actualitzar = useCallback(async () => {
+    try {
+      await enriquirHistorial();
+    } catch {
+      /* silencio — es recarrega igualment amb el que ja hi hagi */
+    }
+    recargar();
+  }, [recargar]);
+
   useEffect(() => {
     recargar();
+  }, [recargar]);
+
+  // El servidor ja cerca Excels nous sol cada 5 minuts en segon pla
+  // (encara que ningú tingui aquesta pàgina oberta) — aquest interval només
+  // fa que, si la tens oberta, es vegi reflectit sense haver de prémer res.
+  useEffect(() => {
+    const id = setInterval(recargar, INTERVAL_ENRIQUIMENT_MS);
+    return () => clearInterval(id);
   }, [recargar]);
 
   const toggle = async (pieza: PiezaHistorial) => {
@@ -161,14 +199,15 @@ export function PaginaHistorial() {
   const completades = piezas.filter((p) => p.estado === "ok");
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-8 py-8">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-foreground">Historial de peces</h1>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={recargar}
+            onClick={actualitzar}
             disabled={cargando}
+            title="Torna a buscar Excels nous i recarrega la llista"
             className="flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent disabled:cursor-wait disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${cargando ? "animate-spin" : ""}`} />

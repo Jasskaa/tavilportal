@@ -1010,6 +1010,70 @@ def limpiar_historial_todo():
         guardar_historial([])
     return {"ok": True}
 
+
+def _intentar_enriquir_pieza(p: dict) -> bool:
+    """Les peces noves normalment no tenen Excel encara quan es
+    descarreguen (algú se'l fa després, amb la info de costos/tractament) —
+    per això es guarden amb `ref` = codi client (l'únic que es coneix
+    llavors, veure _hacer_descarga). Aquesta funció torna a intentar
+    trobar l'Excel per aquest mateix codi i, si ara ja existeix, omple
+    desc/tract/gruix/refCliente. Retorna True si ha actualitzat alguna
+    cosa (perquè qui la crida sàpiga si cal desar)."""
+    if p.get("tiene_excel"):
+        return False
+    codigo = (p.get("ref") or "").strip()
+    if not codigo:
+        return False
+    ruta_excel, codigo_pdm = buscar_excel_por_codigo(codigo)
+    if not ruta_excel:
+        return False
+    datos = extraer_datos_excel(ruta_excel)
+    p["ref"] = codigo_pdm or codigo
+    p["refCliente"] = datos.get("ref", "")
+    p["desc"] = datos.get("desc", "")
+    p["tract"] = datos.get("tract", "")
+    p["grosor"] = datos.get("grosor", "")
+    p["excelEncontrado"] = True
+    p["tiene_excel"] = True
+    return True
+
+
+@app.post("/historial/enriquir")
+def enriquir_historial():
+    """Torna a buscar l'Excel de les peces del historial que encara no en
+    tenien -- algú (normalment el jefe) pot haver-lo creat des de la
+    descàrrega. Es crida sola cada 5 min en segon pla (_enriquir_historial_periodico)
+    i també es pot disparar a l'instant des del botó "Actualitzar" de
+    l'Historial."""
+    actualitzades = 0
+    with _lock_historial():
+        historial = cargar_historial()
+        for p in historial:
+            if _intentar_enriquir_pieza(p):
+                actualitzades += 1
+        if actualitzades:
+            guardar_historial(historial)
+    if actualitzades:
+        log.info(f"[Historial] {actualitzades} pieza(s) enriquecidas con datos de Excel")
+    return {"ok": True, "actualizadas": actualitzades}
+
+
+INTERVALO_ENRIQUIR_HISTORIAL = 300  # 5 minuts
+
+
+async def _enriquir_historial_periodico():
+    """Refresca l'Excel de les peces pendents cada INTERVALO_ENRIQUIR_HISTORIAL
+    en segon pla -- perquè si el jefe (o qui sigui) es fa l'Excel d'una peça
+    nova, la info aparegui sola a la web sense que ningú hagi de prémer res."""
+    while True:
+        await asyncio.sleep(INTERVALO_ENRIQUIR_HISTORIAL)
+        try:
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, enriquir_historial)
+        except Exception as e:
+            log.error(f"[Historial] Error enriquint en segon pla: {e}")
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -3205,3 +3269,4 @@ async def startup():
     log.info(f"[Indice] Cargado desde caché: {len(_INDICE_PIEZAS)} piezas")
     asyncio.create_task(_reindexar_async())  # refresca en segundo plano sin bloquear el arranque
     asyncio.create_task(_reindexar_periodico())  # i despres, cada 10 min
+    asyncio.create_task(_enriquir_historial_periodico())  # Excels nous de l'historial, cada 5 min

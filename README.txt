@@ -90,6 +90,20 @@ Nomes cal en UN PC: el que tingui Outlook obert i rebi els correus de Tavil
    macros" i accepta l'avis en obrir Outlook.
 6. Revisa la llista de remitents autoritzats a dalt de l'arxiu .vba abans
    d'enganxar-lo -- edita-la si cal abans del pas 4.
+7. (Recomanat) Per evitar l'avís "Habilitar macros" cada vegada que
+   s'obre Outlook, signa la macro digitalment:
+   a. Obre SELFCERT.EXE (ve amb Office, normalment a
+      C:\Program Files\Microsoft Office\root\OfficeXX\) i crea un
+      certificat propi (qualsevol nom, p.ex. "Domoli Tavil Macros").
+   b. A l'editor VBA, amb "ThisOutlookSession" seleccionat -> menu
+      Eines -> Signatura digital... -> Trieu -> selecciona el
+      certificat -> Acceptar -> Ctrl+S.
+   c. Tanca i torna a obrir Outlook -- sortira l'avis UNA ULTIMA
+      vegada; marca "Confia sempre en macros d'aquest editor" i
+      Habilitar macros. A partir d'aqui no tornara a preguntar.
+   IMPORTANT: si mai es torna a editar el contingut de la macro, cal
+   tornar a signar-la (repetir el pas b) -- la signatura nomes es
+   valida per al codi exacte que hi havia quan es va signar.
 
 Si Outlook i el servidor estan en PCs diferents, canvia dins del .vba:
   Const SERVIDOR As String = "http://IP_DEL_SERVIDOR:8080"

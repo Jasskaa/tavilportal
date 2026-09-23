@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Search, Download, Trash2, History } from "lucide-react";
-import { motion } from "framer-motion";
+import { Search, Download, Trash2, History, Menu, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { PaginaBuscador } from "./PaginaBuscador";
 import { PaginaDescarga } from "./PaginaDescarga";
 import { PaginaAnulador } from "./PaginaAnulador";
@@ -24,26 +24,39 @@ interface Props {
 
 export function Portal({ seccionInicial, onSeccionChange }: Props) {
   const [seccion, setSeccionState] = useState<Seccion>(seccionInicial);
+  const [menuObert, setMenuObert] = useState(false);
 
   const setSeccion = (s: Seccion) => {
     setSeccionState(s);
     onSeccionChange(s);
+    setMenuObert(false);
   };
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       {/* Barra superior — sempre visible, en les quatre seccions */}
-      <header className="z-30 flex h-20 shrink-0 items-center bg-background">
-        <div className="mx-auto flex h-full w-full max-w-[1400px] items-center justify-between gap-4 px-8">
-          {/* Esquerra — logo */}
-          <div className="flex shrink-0 items-center gap-2.5">
+      <header className="relative z-30 flex h-16 shrink-0 items-center bg-background sm:h-20">
+        <div className="mx-auto flex h-full w-full max-w-[1400px] items-center justify-between gap-2 px-3 sm:gap-4 sm:px-8">
+          {/* Esquerra — logo (+ botó hamburguesa al mòbil) */}
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setMenuObert((v) => !v)}
+              title="Menú"
+              aria-label="Menú"
+              className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:hidden"
+            >
+              {menuObert ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
             <span className="text-[15px] font-semibold tracking-tight text-foreground">
-              Tavil <span className="font-normal text-muted-foreground">· Domoli</span>
+              Tavil <span className="hidden font-normal text-muted-foreground sm:inline">· Domoli</span>
             </span>
           </div>
 
-          {/* Centre — navegació en pill, amb indicador actiu que llisca */}
-          <nav className="relative flex h-12 items-center gap-1 rounded-full border border-border bg-card p-1.5 shadow-[var(--shadow-card)]">
+          {/* Centre — navegació en pill, amb indicador actiu que llisca.
+              Nomès visible a partir de "sm" — al mòbil es fa servir el menú
+              hamburguesa de l'esquerra en comptes d'intentar encabir-la. */}
+          <nav className="relative hidden h-12 items-center gap-1 rounded-full border border-border bg-card p-1.5 shadow-[var(--shadow-card)] sm:flex">
             {SECCIONES.map((s) => {
               const actiu = seccion === s.id;
               return (
@@ -75,6 +88,51 @@ export function Portal({ seccionInicial, onSeccionChange }: Props) {
             <BotonAjustos />
           </div>
         </div>
+
+        {/* Menú desplegable mòbil — llista vertical de seccions, es tanca en
+            triar-ne una o tocant fora. */}
+        <AnimatePresence>
+          {menuObert && (
+            <>
+              <motion.div
+                key="overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                onClick={() => setMenuObert(false)}
+                className="fixed inset-0 top-16 z-20 bg-black/30 sm:hidden"
+              />
+              <motion.nav
+                key="menu"
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="absolute left-3 right-3 top-full z-30 flex flex-col gap-1 rounded-2xl border border-border bg-card p-2 shadow-[var(--shadow-card-hover)] sm:hidden"
+              >
+                {SECCIONES.map((s) => {
+                  const actiu = seccion === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSeccion(s.id)}
+                      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                        actiu
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-accent hover:text-secondary-foreground"
+                      }`}
+                    >
+                      {s.icon}
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </motion.nav>
+            </>
+          )}
+        </AnimatePresence>
       </header>
 
       {seccion === "buscador" ? (

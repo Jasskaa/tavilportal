@@ -184,7 +184,7 @@ export function PaginaDescarga() {
   const erroresRecientes = estadoCola?.errores_recientes ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-8 py-8">
+    <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-2xl font-semibold text-foreground">Descàrrega de comandes</h1>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
